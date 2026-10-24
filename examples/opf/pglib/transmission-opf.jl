@@ -8,7 +8,7 @@ import .BalancedACOPF: _opf_curve_weights
 
 export transmission_case, transmission_cases, transmission_layout, TransmissionOPFModel
 export transmission_residuals, transmission_coverage, transmission_flows
-export opf_curve, opf_controller
+export opf_curve, opf_controller, transmission_start
 
 const PGLIB_REVISION = "dc6be4b2f85ca0e776952ec22cbd4c22396ea5a3"
 const PGLIB_FILES = (
@@ -32,6 +32,7 @@ function transmission_case(
     targets = [],
     network_targets = nothing,
     name = network,
+    hinge_encoding = :separate,
 )
     hasproperty(PGLIB_FILES, network) || throw(ArgumentError("unknown PGLib network"))
     filename = getproperty(PGLIB_FILES, network)
@@ -54,6 +55,7 @@ function transmission_case(
         network_targets,
         name,
         provenance = (revision = PGLIB_REVISION, file = filename),
+        hinge_encoding,
     )
 end
 
@@ -127,6 +129,7 @@ function _transmission_data(
     network_targets,
     name,
     provenance,
+    hinge_encoding = :separate,
 )
     records = _network_records(pm)
     if isnothing(network_targets)
@@ -146,6 +149,7 @@ function _transmission_data(
         pm = pm,
         base_mva = pm["baseMVA"],
         provenance = provenance,
+        hinge_encoding = hinge_encoding,
     )
     _validate(data)
     return data
@@ -197,6 +201,8 @@ function _branch_record(b, ids)
 end
 
 function _validate(data)
+    data.hinge_encoding in (:separate, :shared) ||
+        throw(ArgumentError("unknown hinge encoding"))
     nb = length(data.buses)
     original = _network_records(data.pm)
     all(key -> getproperty(data, key) == getproperty(original, key), keys(original)) ||
@@ -310,7 +316,7 @@ function _target_voltage_interval(curve, region, window)
     return a, b, ao, bo
 end
 
-"""Variable/row maps, including one nonnegative hinge pair per enabled knot."""
+"""Variable/row maps. Shared encoding reuses exact `(bus,knot)` pairs across laws/devices."""
 function transmission_layout(data)
     nb, ng, nc, ne = length(data.buses),
     length(data.generators),
@@ -321,13 +327,20 @@ function transmission_layout(data)
     p, q = collect((2*nb+2*ng+1):(2*nb+2*ng+nc)), collect((2*nb+2*ng+nc+1):(2*nb+2*ng+2*nc))
     knots, devices = Float64[], Int[]
     vv_pairs, vw_pairs = [Int[] for _ in 1:nc], [Int[] for _ in 1:nc]
+    shared = Dict{Tuple{Int,Float64},Int}()
     for (i, c) in enumerate(data.controllers)
         for (curve, pairs) in ((c.vv, vv_pairs[i]), (c.vw, vw_pairs[i]))
             isnothing(curve) && continue
             for k in curve.knots
-                push!(knots, k)
-                push!(devices, i)
-                push!(pairs, length(knots))
+                key = (c.bus, Float64(k))
+                if data.hinge_encoding == :shared && haskey(shared, key)
+                    push!(pairs, shared[key])
+                else
+                    push!(knots, k)
+                    push!(devices, i)
+                    shared[key] = length(knots)
+                    push!(pairs, length(knots))
+                end
             end
         end
     end
@@ -374,6 +387,32 @@ function transmission_layout(data)
         nvar = offset+2*nh,
         ncon = nlin+2*nb+nc+2*ne,
     )
+end
+
+"""Transfer physical variables by matching IDs, then construct exact target hinges.
+
+This maps physical starts between encodings/policy variants. It does not map
+relaxed hinge iterates or duals, and does not project physical variables onto
+bounds or claim the target laws are feasible. Both cases must have matching
+ordered bus/generator/controller IDs and controller attachment buses.
+"""
+function transmission_start(data, source, x)
+    a, b = transmission_layout(data), transmission_layout(source)
+    length(x) == b.nvar && all(isfinite, x) || throw(ArgumentError("invalid source point"))
+    for kind in (:buses, :generators, :controllers)
+        [r.id for r in getproperty(data, kind)] == [r.id for r in getproperty(source, kind)] ||
+            throw(ArgumentError("physical record IDs differ"))
+    end
+    [c.bus for c in data.controllers] == [c.bus for c in source.controllers] || throw(ArgumentError("controller attachment buses differ"))
+    result = zeros(a.nvar)
+    for key in (:v, :theta, :pg, :qg, :p, :q)
+        result[getproperty(a, key)] .= x[getproperty(b, key)]
+    end
+    for h in eachindex(a.knots)
+        delta = result[a.v[data.controllers[a.devices[h]].bus]]-a.knots[h]
+        result[a.r[h]], result[a.s[h]] = max(delta, 0), max(-delta, 0)
+    end
+    return result
 end
 
 function transmission_flows(data, x, layout = transmission_layout(data))

@@ -9,6 +9,9 @@ function _source_files()
             "hard-search.jl",
             "hard-search-driver.jl",
             "transition-search.jl",
+            "search-trace.jl",
+            "reduction-search.jl",
+            "search-reductions.jl",
             "search-hard-cases.jl",
             "Project.toml",
         )

@@ -348,3 +348,60 @@ raw-attempt files byte for byte. The local full archive is
 The recorder and archived points pass **419 assertions** on Julia 1.10.12 and
 1.12.6. The long search remains manual; CI rechecks model/recorder behavior and
 stored numerical evidence without asserting continued solver failure.
+
+## Controlled reduction matrix
+
+`reduction_case(; encoding=:separate, controlled=3, plateau=:equal)` starts from
+`transition_case()` (zero offset, generator-45 Q upper limit 0.35 pu).
+
+- `encoding=:separate/:shared` changes only the hinge representation. Shared
+  encoding allocates one pair per **exact** `(bus,knot)` key and reuses it across
+  devices and laws. It keeps every law row and physical constraint. The central
+  three-device case shrinks from 18 to 5 pairs. At one controlled device it
+  shrinks from 6 to 5 because VV and VW already share a knot within that device.
+- `controlled=1/2/3` retains both laws on the first original device IDs. The
+  remaining devices stay at bus 95 with unchanged hardware, availability and
+  costs, but dispatchable P/Q. Changing this count changes the physical feasible
+  set; total installed hardware and the conventional network remain fixed.
+- `plateau=:equal/:crossing` keeps availability at .8S and VW knots unchanged.
+  The upper VW ordinate is .8S or .9S, respectively, with the lower ordinate
+  fixed at .2S. In the crossing variant availability intersects the VW ramp at
+  fraction 1/7, voltage `1.022142857...`; it no longer duplicates the upper
+  plateau. The voltage knees remain coincident with the VV absorption knee.
+
+`transmission_start(target, source, x)` checks ordered physical record IDs and
+attachment buses, copies V/angle/generator P/Q/inverter P/Q, then constructs exact
+hinges for the target representation. It does not map relaxed hinge iterates or
+multipliers. Flat and witness physical starts match across all 12 variants;
+seeded starts come from one perturbed physical reference and match as well.
+
+Every case receives a **constructed, independently verified numerical witness**
+from the committed central physical point. These transfers preserve its binding
+Q limit and knee voltage, and must pass all original checks at `1e-7`. They are
+stored as explicit witness records with source/input/point checksums, rather than
+being labelled new solver runs or optima of the reduced problems. In crossing
+variants the VW knee is geometrically coincident but its cap is slack at this
+witness; activity reporting distinguishes the knot from a binding cap.
+
+```sh
+julia --project=examples/opf/pglib examples/opf/pglib/search-reductions.jl \
+  --out=examples/opf/pglib/search-results/ieee118-reductions-2026-10-25
+# The default runs 24 flat/witness trials plus a separate 2000-iteration reference.
+```
+
+Each raw request enables a read-only MadNLP/CCOpt intermediate callback. It
+flushes `trace.tsv` every ten iterations and records a final sample: iteration,
+phase, elapsed time, barrier mu, relaxation sigma range, reported primal/dual/
+complementarity residuals, objective and all six independent original residuals.
+The observer returns true and never changes iterates or solver settings; its
+model evaluations add to evaluation counters and runtime. A separate traced
+warmup pays compilation costs before the matrix. Trace errors are retained,
+trace checksums are checked on read, and replay restores the sampling interval.
+Restoration/robust phases are labelled separately when callbacks are invoked.
+
+The reference uses the original separate/three-device/equal-plateau input and
+flat start, with 2000 iterations and 180 seconds instead of 500 and 60. It is
+stored under `references/`, outside the 24-trial matrix. These finite budgets
+measure observed progress; an iteration limit does not establish permanent
+algorithmic stagnation. Matched perturbation batches use explicit seeds and
+separate output plans. Resume never overwrites complete raw attempts.

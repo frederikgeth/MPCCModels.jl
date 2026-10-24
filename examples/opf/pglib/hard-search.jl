@@ -122,7 +122,7 @@ end
 
 # Exceptions are retained, with the current IPM point when it can be unpacked.
 # No target, witness or post-solve polishing changes the raw homotopy result.
-function _execute(model, c; mask = nothing)
+function _execute(model, c; mask = nothing, trace = nothing)
     result = Dict{String,Any}("solver_success"=>false, "status"=>"not_started")
     ipm, solver, stats = nothing, nothing, nothing
     initial = time_ns()
@@ -137,12 +137,19 @@ function _execute(model, c; mask = nothing)
                 print_level = CCOpt.MadNLP.ERROR,
                 file_print_level = CCOpt.MadNLP.ERROR,
             )
-            solver = CCOpt.RelaxationSolver(model; solver_opts = options, _ipm_kwargs(c)...)
+            observer = isnothing(trace) ? (;) : (intermediate_callback = trace,)
+            solver = CCOpt.RelaxationSolver(
+                model;
+                solver_opts = options,
+                _ipm_kwargs(c)...,
+                observer...,
+            )
             ipm = solver.ipm
             result["resolved_relaxation"] = _options(solver.opts)
         else
             branch = CCOpt.BranchNLP(model, Vector{Bool}(mask))
-            ipm = CCOpt.MadNLP.MadNLPSolver(branch; _ipm_kwargs(c)...)
+            observer = isnothing(trace) ? (;) : (intermediate_callback = trace,)
+            ipm = CCOpt.MadNLP.MadNLPSolver(branch; _ipm_kwargs(c)..., observer...)
         end
         result["resolved_ipm"] = _options(ipm.opt)
         result["initialization_seconds"] = (time_ns()-initial)/1e9
@@ -153,6 +160,8 @@ function _execute(model, c; mask = nothing)
         finally
             result["solve_call_seconds"] = (time_ns()-start)/1e9
         end
+        !isnothing(trace) &&
+            _sample_trace!(trace, ipm, CCOpt.MadNLP.UserCallbackRegular(); force = true)
         result["status"] = string(stats.status)
         result["solver_success"] = _success(stats.status)
         result["solution"] = copy(stats.solution)
@@ -183,7 +192,7 @@ function _execute(model, c; mask = nothing)
 end
 
 function _snapshot(data)
-    return Dict(
+    snapshot = Dict(
         "schema"=>SCHEMA,
         "network"=>string(data.network),
         "name"=>string(data.name),
@@ -191,6 +200,10 @@ function _snapshot(data)
         "controllers"=>_plain(data.controllers),
         "provenance"=>_plain(data.provenance),
     )
+    # Preserve byte-compatible historical separate-encoding input snapshots.
+    data.hinge_encoding != :separate &&
+        (snapshot["hinge_encoding"] = string(data.hinge_encoding))
+    return snapshot
 end
 
 """Read a self-contained network/controller snapshot, validating its recorded hash."""
@@ -217,6 +230,7 @@ function load_case(path; expected_sha = nothing)
     return TransmissionOPF._transmission_data(
         d["pm"];
         network = Symbol(d["network"]),
+        hinge_encoding = Symbol(get(d, "hinge_encoding", "separate")),
         name = Symbol(d["name"]),
         controllers = restore.(d["controllers"]),
         targets = [],
@@ -290,9 +304,11 @@ function run_trial(
     mask = nothing,
     provenance = Dict(),
     executor = _execute,
+    trace_every::Int = 0,
 )
     isfinite(tolerance) && tolerance > 0 ||
         throw(ArgumentError("invalid feasibility tolerance"))
+    trace_every >= 0 || throw(ArgumentError("invalid trace interval"))
     ispath(directory) && throw(ArgumentError("trial directory already exists"))
     mkpath(directory)
     case_file =
@@ -321,6 +337,7 @@ function run_trial(
         "environment"=>_environment(),
     )
     !isnothing(mask) && (request["sector_mask"] = collect(mask))
+    trace_every > 0 && (request["trace_every"] = trace_every)
     _write(joinpath(directory, "request.toml"), request)
     result = Dict{String,Any}(
         "schema"=>SCHEMA,
@@ -340,7 +357,18 @@ function run_trial(
                     model = TransmissionOPFModel(data; x0 = start)
                     result["model_build_seconds"] = (time_ns()-outer)/1e9
                     result["initial"] = _metrics(model, data, start, tolerance)
-                    return merge!(result, executor(model, request["profile"]; mask))
+                    executed =
+                        trace_every == 0 ? executor(model, request["profile"]; mask) :
+                        _execute_traced(
+                            executor,
+                            model,
+                            data,
+                            request["profile"],
+                            directory,
+                            mask,
+                            trace_every,
+                        )
+                    return merge!(result, executed)
                 end
             end
         end
@@ -382,6 +410,10 @@ function read_trial(directory)
         _sha(joinpath(directory, "solution.toml")) == result["solution_sha256"] ||
             error("solution checksum mismatch")
     end
+    if haskey(result, "trace_sha256")
+        _sha(joinpath(directory, result["trace_file"])) == result["trace_sha256"] ||
+            error("trace checksum mismatch")
+    end
     return (; request, result)
 end
 
@@ -419,6 +451,7 @@ function replay_trial(directory, output)
         start_label = saved.request["start_label"],
         tolerance = saved.request["tolerance"],
         mask = get(saved.request, "sector_mask", nothing),
+        trace_every = get(saved.request, "trace_every", 0),
         provenance = Dict(
             "replayed_from"=>abspath(directory),
             "original_environment"=>get(saved.request, "environment", Dict()),
@@ -426,6 +459,8 @@ function replay_trial(directory, output)
     )
 end
 
+include("search-trace.jl")
 include("hard-search-driver.jl")
 include("transition-search.jl")
+include("reduction-search.jl")
 end

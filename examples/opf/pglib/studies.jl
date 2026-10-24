@@ -21,6 +21,7 @@ function transmission_overlay(
     targets = [],
     network_targets = [],
     name = Symbol(data.name, "_overlay"),
+    hinge_encoding = data.hinge_encoding,
 )
     isfinite(load_scale) && load_scale > 0 || throw(ArgumentError("invalid load scale"))
     pm = deepcopy(data.pm)
@@ -77,6 +78,7 @@ function transmission_overlay(
         network_targets,
         name,
         provenance = data.provenance,
+        hinge_encoding,
     )
 end
 
