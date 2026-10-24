@@ -49,9 +49,27 @@ historical numerical results from the draft PR.
 
 ## Follow-up scope
 
-- Add a small meshed transmission case using the same control encoding.
-- Explore cases with binding inverter capability and explicit priority policies.
-- Port selected unbalanced BMOPF cases in a separate contribution.
+The completed milestones above describe the initial two-bus contribution.
+The [review and case-design matrix](CASE_DESIGN.md) records the next stage.
+
+- [ ] Validate custom starts after conversion to the model's numeric type.
+- [ ] Repair and test the inherited split NLP API failures exposed by this model.
+- [ ] Record and assert achieved curve regions and active constraints at solutions.
+- [ ] Add the missing saturated-VV/flat-VW interior, the early VW ramp with
+      availability binding, and the availability/VW crossover.
+- [ ] Add several positions on each finite curve segment and solved neighbors
+      of every breakpoint.
+- [ ] Generalize example data and index maps for several buses and controllers,
+      preserving the existing constructors and named cases.
+- [ ] Add isolated binding capability, branch-end, voltage, and source-bound cases.
+- [ ] Add two- and three-controller fork/chain cases, colocated controllers,
+      and a small mesh with interacting limits.
+- [ ] Audit compatible combinations of curve region, limiting constraint,
+      controller layout, and objective before extending the benchmark set.
+- [ ] Port selected unbalanced BMOPF cases in a separate contribution.
+
+Control-priority policies remain a separate modeling extension. Equipment limits
+in this matrix continue to apply alongside the fixed reactive-power law.
 
 ## Validation record
 

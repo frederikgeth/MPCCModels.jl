@@ -111,3 +111,5 @@ They also construct a feasible dispatch strictly below the volt-watt cap.
 Core tests do not require CCOpt; `solve.jl all` is a separate integration check.
 
 See [ROADMAP.md](ROADMAP.md) for contribution progress and follow-up scope.
+The [case-design matrix](CASE_DESIGN.md) reviews current coverage and plans
+additional active constraints, curve positions, and multiple-controller studies.
