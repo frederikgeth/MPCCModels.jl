@@ -280,15 +280,15 @@ knees. Tighten one original conventional-generator Q upper bound without changin
 its P bounds, costs or other network data. Preserve separate case snapshots and
 all raw starts/results; never infer infeasibility from unsuccessful homotopy.
 
-- [ ] Select feasible in-band knees and a local generator-Q limit; document
+- [x] Select feasible in-band knees and a local generator-Q limit; document
       actual binding margins and knee distances at numerical witnesses.
-- [ ] Sweep Q upper limits and VW offsets with flat, neighboring, independently
+- [x] Sweep Q upper limits and VW offsets with flat, neighboring, independently
       perturbed and witness starts under fixed `ratio_one` budgets.
-- [ ] Retain exact-sector witnesses separately and verify all original physical
+- [x] Retain exact-sector witnesses separately and verify all original physical
       equations, curve laws, boxes and complementarity before registering them.
-- [ ] Curate reproducible difficult trials, matched recoveries and witnesses;
+- [x] Curate reproducible difficult trials, matched recoveries and witnesses;
       report achieved activity separately from requested activity.
-- [ ] Test case invariants, activity reporting and persistence; document results
+- [x] Test case invariants, activity reporting and persistence; document results
       and the next reduction/shared-hinge experiments.
 
 Validation: **105 harness/curated-record assertions** pass on Julia 1.10.12 and
@@ -298,3 +298,35 @@ Documenter builds with external link checks disabled locally. The archived
 stopped at 500 iterations with the same returned-point residuals. Full resume
 left all 800 raw-attempt files unchanged. CI runs the short recorder/witness
 tests; the 160-trial search remains an explicit research run.
+
+The completed ratio-one matrix has **54 known-feasible iteration-limit exits**:
+all three Q limits × all three VW offsets × six starts. None passes the original
+physical gate. All nine separately verified witnesses bind generator 45's Q upper
+limit; all three zero-offset witnesses put all three controllers at simultaneous
+VV/VW knees. Maximum witness residual is below `2.5e-11`. Nearby Q perturbations
+confirm local dispatch/cost influence. The relaxed-Q setup and both separated
+knee neighbors also fail, so neither Q tightness nor exact VV/VW coincidence
+alone explains the difficulty. See [protocol/results](HARD_SEARCH.md) and
+[portable records](hard-cases/README.md#ratio-one-transitionq-limit-receipt).
+
+Next reductions, keeping raw results and verified witnesses for every variant:
+
+- [ ] Compare one, two and three active controllers while retaining the other
+      devices as matched dispatchable injections; distinguish controller count
+      from total injected power and device hardware.
+- [ ] Compare separate hinges with shared `(bus,knot)` hinges on identical
+      physics, starts and budgets; report dimensions and redundant constraints.
+- [ ] Separate availability from the upper VW plateau and move its crossover
+      into the ramp; distinguish coincident physical bounds from shared knots.
+- [ ] Split same-bus devices across nearby buses while keeping profiles and
+      aggregate ratings fixed; preserve the knee/Q activity evidence.
+- [ ] Check selected-sector objective/stationarity diagnostics and report which
+      failure persists before extending to IEEE 300 or larger fleets.
+
+Validation: **419 recorder/archived-point assertions** pass on Julia 1.10.12
+and 1.12.6, and the existing **578 transmission-model assertions** pass on
+1.12.6. Documenter builds locally with external link checks disabled. A full
+resume preserves all **270 raw-attempt files** byte for byte. Remote CI remains
+pending. The complete local archive is
+`search-results/ieee118-transitions-2026-10-24.tar.gz` (SHA-256
+`56d834e6c5e6a12737aa7665a11f77fa662b2800d8eff7f7fcd5f334b35b7d41`).

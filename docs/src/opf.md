@@ -254,3 +254,10 @@ retains representative raw failures/recoveries and a feasible witness. CI
 rechecks that witness and the recorder, without requiring future solver versions
 to keep failing. Full search outputs remain separate from the accepted regime
 regressions and are ignored by Git.
+
+A second search uses `--transitions` to hold the relaxation ratio at one while
+combining three colocated IEEE 118 VV/VW controllers, knee offsets and a tightened
+generator-Q upper bound. It records achieved knee distances and Q margins for
+raw points and separate witnesses, and sweeps several deterministic perturbation
+seeds. See the optional example's `HARD_SEARCH.md` for the full matrix and replay
+commands. These difficulty searches retain the package's original hinge encoding.

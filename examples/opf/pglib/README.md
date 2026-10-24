@@ -206,3 +206,10 @@ environment/source fingerprints support resume and replay. The first
 [curated capability-0.82 receipt](hard-cases/README.md) includes an exact-sector
 witness and representative failed/recovered homotopy runs. These are solver
 robustness experiments; they do not replace the successful regression cases.
+
+The `--transitions` search fixes `ratio_one` and combines three colocated IEEE
+118 controllers with coincident or separated VV/VW knees and a tightened
+conventional-generator Q limit. It sweeps three limits, three knee offsets and
+six actual starts per input, preserving raw failures and separate numerical
+witnesses. [Protocol and activity checks](HARD_SEARCH.md#ratio-one-simultaneous-transitions-and-generator-q-limit)
+distinguish achieved Q tightness/knee distances from original physical feasibility.

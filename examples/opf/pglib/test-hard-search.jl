@@ -280,3 +280,79 @@ end
         )
     end
 end
+
+@testset "Archived transition witnesses and ratio-one raw points" begin
+    fixture =
+        TOML.parsefile(joinpath(@__DIR__, "hard-cases", "ieee118-transitions-q45.toml"))
+    @test fixture["source_file_sha256"] ==
+          HardCaseSearch._sha(joinpath(@__DIR__, "data", fixture["source_file"]))
+    @test length(fixture["cases"]) == 9
+    @test length(fixture["trials"]) == 6
+    bits_sha(x) = bytes2hex(HardCaseSearch.sha256(join(bitstring.(Float64.(x)), "\n")))
+    for case in fixture["cases"]
+        data = transition_case(;
+            knee = case["knee"],
+            offset = case["offset"],
+            qmax = case["qmax"],
+        )
+        @test bytes2hex(
+            HardCaseSearch.sha256(HardCaseSearch._toml(HardCaseSearch._snapshot(data))),
+        ) == case["input_snapshot_sha256"]
+        witness = case["witness"]
+        @test bits_sha(witness["start"]) == witness["start_bits_sha256"]
+        @test bits_sha(witness["x"]) == witness["point_bits_sha256"]
+        model = HardCaseSearch.TransmissionOPFModel(data)
+        metrics = HardCaseSearch._metrics(model, data, witness["x"], 1e-7)
+        @test metrics["physically_feasible"]
+        @test metrics["objective"] ≈ witness["objective"] atol = 1e-5
+        @test all(c -> c["margins"]["capability"] > 0.1, metrics["controllers"])
+        activity = transition_activity(data, witness["x"])
+        @test activity == case["witness_activity"]
+        @test activity["q45_binding"]
+        @test activity["simultaneous_controllers"] == (case["offset"] == 0 ? 3 : 0)
+        @test all(d -> d <= 1e-6, activity["vw_knee_distances"])
+        for (key, value) in witness["residuals"]
+            @test metrics["residuals"][key] ≈ value atol = 1e-10
+        end
+    end
+    sensitivity = fixture["q_sensitivity"]["cases"]
+    @test [r["qmax"] for r in sensitivity] == [0.349, 0.35, 0.351]
+    @test sensitivity[1]["objective"] >
+          sensitivity[2]["objective"] >
+          sensitivity[3]["objective"]
+    for row in sensitivity
+        data = transition_case(; qmax = row["qmax"])
+        witness = row["witness"]
+        @test bits_sha(witness["x"]) == witness["point_bits_sha256"]
+        actual = HardCaseSearch._metrics(
+            HardCaseSearch.TransmissionOPFModel(data),
+            data,
+            witness["x"],
+            1e-7,
+        )
+        @test actual["physically_feasible"]
+        @test actual["objective"] ≈ row["objective"] atol = 1e-5
+        @test transition_activity(data, witness["x"])["q45_binding"]
+    end
+    for trial in fixture["trials"]
+        data = transition_case(;
+            knee = trial["knee"],
+            offset = trial["offset"],
+            qmax = trial["qmax"],
+        )
+        @test trial["profile"]["name"] == "ratio_one"
+        @test trial["profile"]["sigma_mu_ratio"] == 1.0
+        @test bits_sha(trial["start"]) == trial["start_bits_sha256"]
+        @test bits_sha(trial["x"]) == trial["point_bits_sha256"]
+        actual = HardCaseSearch._metrics(
+            HardCaseSearch.TransmissionOPFModel(data),
+            data,
+            trial["x"],
+            trial["tolerance"],
+        )
+        @test actual["physically_feasible"] == trial["physically_feasible"]
+        for (key, value) in trial["residuals"]
+            @test actual["residuals"][key] ≈ value atol = 1e-10
+        end
+    end
+end

@@ -45,3 +45,35 @@ archive is preserved locally as
 `../search-results/ieee118-capability-2026-10-24.tar.gz`; it is excluded from Git
 along with the expanded output. The compact receipt above provides the committed
 point-level reproduction, while the TSV records the whole experiment matrix.
+
+## Ratio-one transition/Q-limit receipt
+
+`ieee118-transitions-q45.toml` preserves numerical witnesses for all nine
+transition/Q-limit inputs and the six raw central-case trials (zero VW offset,
+Q upper limit 0.35 pu). It also retains the two neighboring Q-sensitivity
+witnesses, solver profiles/options, actual starts/points, bit hashes, original
+physical checks and achieved activity. Reconstruct each input with
+`transition_case(; knee=record["knee"], offset=record["offset"], qmax=record["qmax"])`.
+The complete 54-row census is `ieee118-transitions-sweep.tsv`.
+
+```julia
+receipt = TOML.parsefile("examples/opf/pglib/hard-cases/ieee118-transitions-q45.toml")
+trial = only(filter(t -> t["start_label"] == "flat", receipt["trials"]))
+data = transition_case(; knee=trial["knee"], offset=trial["offset"], qmax=trial["qmax"])
+run_trial(data, trial["start"], trial["profile"], "NEW_TRANSITION_REPLAY_DIRECTORY";
+    start_label=trial["start_label"], provenance=Dict("curated_source" => receipt["environment"]))
+```
+
+All three devices share bus 95 and normalized profiles. Zero offset aligns the
+VV deadband/absorption knee with VW onset; nonzero offsets separate the knees.
+Generator 45 at bus 100 has the only changed network bound. The setup uses its
+original Q limit and is retained separately. Independent selected-sector
+witnesses establish numerical feasibility and achieved activity, without
+certifying full MPCC stationarity. CI rechecks archived arrays; it does not
+require a future solver to reproduce historical iteration limits.
+
+Complete inputs, logs, all raw attempts, source/environment snapshots, a raw
+replay and Q sensitivities are retained locally under
+`../search-results/ieee118-transitions-2026-10-24/` and its sibling `.tar.gz`.
+These research artifacts are excluded from Git; the receipt and TSV above are
+portable committed records.

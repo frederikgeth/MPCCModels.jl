@@ -290,3 +290,61 @@ residual fields remain separate. At nonzero offsets the VV and VW knees are
 intentionally distinct; do not label them simultaneously active because they
 are nearby. `summary.tsv` is a compact status census. Replay individual raw
 requests using the existing `--replay=TRIAL --out=NEW_DIR` command.
+
+These cases intentionally combine several degeneracies: common voltage and law
+profiles across devices, repeated hinge knots, and equality of the upper VW
+plateau with availability. The matched relaxed-Q setup tests whether Q tightness
+is necessary for a failure. Additional ablations should split device count,
+shared versus separate knots, and availability/VW coincidence before attributing
+slow convergence to one mechanism. A failed witness-start homotopy is useful
+robustness evidence; it still does not diagnose the algorithmic cause.
+
+### Completed 54-trial result (2026-10-24)
+
+All **54 raw `ratio_one` trials reach 500 iterations** and fail the original
+`1e-5` physical gate. Every input has a separate exact-sector witness with maximum
+original residual below **2.5e-11**; all nine witness-start homotopies also stall.
+No raw result was replaced by a witness. There are no exceptions, unavailable
+starts, wall-time exits or unresolved-feasibility cases in this matrix.
+
+| VW offset (pu) | Witness voltage (pu) | Achieved VV position | Known-feasible failures |
+| --- | --- | --- | --- |
+| −0.0001 | 1.0199 | Deadband, just below absorption knee | 18 / 18 |
+| 0 | 1.0200 | Deadband/absorption knee, simultaneous with VW | 18 / 18 |
+| +0.0001 | 1.0201 | Absorption ramp, fraction 0.005 | 18 / 18 |
+
+All witnesses lie at VW onset, with availability and VW tight and capability
+slack. At zero offset, all three controllers meet both knee-distance checks.
+All nine generator-Q margins are positive and below `4.38e-8` pu, well within
+the `1e-6` activity threshold. Raw points have VV errors from `4.93e-4` to
+`2.06e-2` system-base pu; small AC balance errors do not make those points feasible.
+The ±`1e-4` offsets are 100 times the knee classifier tolerance: the separated
+neighbors are not counted as simultaneous knees.
+
+Three relaxed-Q setup homotopies also hit 500 iterations; their separate sector
+solves succeed. Thus Q tightness is present in these combined cases, but is not
+necessary for their observed difficulty. The nearby offsets also stall, so the
+failure is not confined to exact VV/VW knot coincidence. Shared profiles and
+same-bus redundancy remain present in every input and require matched ablations.
+
+For the central zero-offset case, separate sector solves at Q upper bounds
+0.349, 0.350 and 0.351 pu give local objectives 91215.165706737,
+91215.160139752 and 91215.154608201, respectively. Each Q bound is tight and
+all original residuals are below `1e-7`. This supports local influence of the
+limit on dispatch/cost; these selected-sector values are not global sensitivity
+certificates or full MPCC stationarity checks.
+
+The [portable receipt and census](hard-cases/README.md#ratio-one-transitionq-limit-receipt)
+retain all nine main witnesses, both additional Q-sensitivity witnesses and all
+six central-case raw trials. The TSV includes all 54 statuses, original residuals,
+raw activity and witness activity. Full snapshots, actual vectors, logs and
+source/environment records remain under `search-results/`. A replay of the
+central flat-start request again hits 500 iterations with identical residuals.
+
+Resume rechecks the finalized plan/source/environment and preserves all **270**
+raw-attempt files byte for byte. The local full archive is
+`search-results/ieee118-transitions-2026-10-24.tar.gz`, SHA-256
+`56d834e6c5e6a12737aa7665a11f77fa662b2800d8eff7f7fcd5f334b35b7d41`.
+The recorder and archived points pass **419 assertions** on Julia 1.10.12 and
+1.12.6. The long search remains manual; CI rechecks model/recorder behavior and
+stored numerical evidence without asserting continued solver failure.
