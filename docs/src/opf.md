@@ -198,3 +198,35 @@ reference or target selects the branch. This selected-sector solve is not a
 full MPCC stationarity or global-optimality test. Set `polish = false` when
 calling `solve_opf_case` to inspect the unrefined homotopy result against the
 same gates.
+
+## PGLib transmission extension
+
+A separate optional environment in `examples/opf/pglib` develops larger balanced
+transmission cases from pinned PGLib-OPF v23.07 IEEE 14/118 networks and their
+congested variants. It preserves conventional generators, polynomial costs,
+shunts, line charging, fixed transformer taps/phase shifts, voltage and
+branch-end limits, and angle-difference limits. The reference voltage magnitude
+is optimized. It adds no dependencies to the package runtime.
+
+The initial 22-case suite contains four canonical baselines, all four matched
+dispatchable/VV/VW/both variants on each network, and IEEE 14 scenarios with
+strict VW curtailment or an isolated binding inverter capability circle. Three
+controllers share each physical network. Explicit targets check simultaneous
+curve regions, finite-segment fractions and tight/slack limits; network targets
+check selected bus, generator and branch-end bounds. Small limit relaxations
+verify dispatch and production-cost responses in the two isolated inverter-limit
+studies. Coverage of all transmission plateaus, knees and network-limit
+sensitivities remains future work in `examples/opf/pglib/ROADMAP.md`.
+
+```sh
+julia --project=examples/opf/pglib examples/opf/pglib/solve.jl ieee118 both
+julia --project=examples/opf/pglib examples/opf/pglib/solve.jl ieee14 both watt_limited
+```
+
+Install that environment against this checkout using `Pkg.develop(path=pwd())`
+and `Pkg.instantiate()` as described in its README. `test-model.jl` checks
+physics/derivatives; `validate-baselines.jl` compares with independent
+PowerModels/Ipopt solves; `test-solves.jl` checks original feasibility, achieved
+activity, matched hardware and limit perturbations. These are local numerical
+checks and do not certify global optimality or full MPCC stationarity. Data
+provenance, attribution, licenses and checksums are retained in the example.

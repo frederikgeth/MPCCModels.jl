@@ -164,3 +164,10 @@ The [roadmap](ROADMAP.md) and [case-design matrix](CASE_DESIGN.md) track remaini
 equipment-limited cases, heterogeneous profiles, coactive limits, and larger
 studies. The shipped dispatches are availability- or VW-limited; isolated
 binding capability, thermal, voltage and source-limit studies remain planned.
+
+## PGLib transmission cases
+
+The optional [PGLib suite](pglib/README.md) adds IEEE 14/118 and their congested
+variants, full transmission equipment, matched dispatchable/VV/VW/both overlays,
+three controllers per study, and solved activity/sensitivity checks. Its
+[roadmap](pglib/ROADMAP.md) tracks the larger case and bound-activation matrix.

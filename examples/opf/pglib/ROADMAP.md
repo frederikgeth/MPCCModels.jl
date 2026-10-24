@@ -95,13 +95,63 @@ availability or costs can change limiting constraints without changing region.
 
 - [x] Agree the staged network/control/activation matrix.
 - [x] Pin PGLib v23.07 provenance and define acceptance criteria.
-- [ ] Import original 14/118 and congested variants with license and hashes.
-- [ ] Implement and test canonical transmission NLP and hinged MPCC overlay.
-- [ ] Cross-check the baseline against PowerModels.
-- [ ] Freeze first solved multi-controller overlays and independent targets.
-- [ ] Add optional solver/coverage tests and runnable documentation.
-- [ ] Add sensitivity-backed isolated equipment-limit studies.
+- [x] Import original 14/118 and congested variants with license and hashes.
+- [x] Implement and test canonical transmission NLP and hinged MPCC overlay.
+- [x] Cross-check the baseline against PowerModels.
+- [x] Freeze first solved multi-controller overlays and independent targets.
+- [x] Add optional solver/coverage tests and runnable documentation.
+- [x] Add sensitivity-backed isolated inverter VW and capability-limit studies.
+- [ ] Add isolated voltage/thermal/generator/angle-limit perturbation studies.
 - [ ] Expand coverage strata, placement patterns and system sizes.
+
+## Initial implementation and validation
+
+- Four unmodified, hash-verified source files retain upstream license and
+  attribution. PowerModels parses them without its network repair pass; units
+  are converted explicitly. Power-system and solver packages remain confined
+  to the optional `examples/opf/pglib` environment.
+- The canonical builder preserves the full pi/transformer network, costs,
+  conventional generator boxes, bus bounds and branch-end/angle limits. All
+  voltage magnitudes are optimized; only one reference angle is fixed.
+- The first suite has 22 cases: four canonical baselines, four matched law
+  variants on each network and two isolated IEEE 14 inverter-limit studies.
+  Every overlay has three controllers; both-law overlays have 18 hinge pairs.
+- The IEEE 14 mixed case simultaneously exercises VV absorption, deadband and
+  injection. The congested IEEE 118 case exercises two injection ramps and a
+  plateau. IEEE 118 thermal limits remain active with controllers; the IEEE 14
+  API overlays relieve the two thermal limits active in its canonical baseline.
+  These outcomes are explicit coverage assertions, not assumed from case names.
+- Strict IEEE 14 VW curtailment occurs near the middle of a gentle ramp with
+  availability and capability slack. A separate case activates the S circle
+  with availability and VW slack. Small independent relaxations increase device
+  dispatch and reduce cost. Broader network-limit sensitivities remain open.
+- An exploratory IEEE 118 capability overlay failed homotopy termination and
+  original-curve checks. It is excluded from accepted scenarios. Solver success
+  and physical/coverage tolerances were not weakened to include it.
+- Optional CI runs model checks, independent PowerModels/Ipopt baselines, and
+  solved activity/sensitivity gates on Julia 1.12. Remote CI is pending a PR or
+  workflow dispatch; local validation is recorded below.
+
+## Local validation record
+
+- Julia **1.10.12 and 1.12.6**: optional model tests **554 assertions**,
+  independent PowerModels/Ipopt baseline comparison **16 assertions**, and
+  solved activity/matched controls/limit perturbations **235 assertions**.
+  All **22 accepted cases** solve from the documented flat-voltage starts and
+  meet original residual and explicit coverage gates on both Julia versions.
+- Julia 1.12.6: complete package suite **2050 assertions** passes. No core
+  package code or dependencies changed in this transmission expansion.
+- Baseline objectives (our local solves; PowerModels/Ipopt agrees within the
+  tested tolerances) are 2178.080428 for IEEE 14, 97213.607396 for IEEE 118,
+  5999.363314 for IEEE 14 API and 249614.524493 for IEEE 118 API. These are
+  agreement checks between local solves, not global-optimum certificates.
+- Validation environment: ADNLPModels 0.8.15, CCOpt 0.1.0, MadNLP 0.10.2,
+  PowerModels 0.21.7, Ipopt.jl 1.16.0 and JuMP 1.32.1. Compatible versions are
+  specified in the optional Project; the local manifests are not committed.
+- Documenter builds successfully with the transmission overview. External link
+  checking was disabled for the offline build; the committed configuration
+  retains it. Pinned data hashes, local Markdown links, JuliaFormatter and
+  `git diff --check` pass. CI definitions are added; remote results are pending.
 
 ## Sources
 
