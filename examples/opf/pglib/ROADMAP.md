@@ -8,8 +8,12 @@ to commit `dc6be4b2f85ca0e776952ec22cbd4c22396ea5a3`. Preserve original files,
 licenses and attribution; express modifications in named, reproducible overlays.
 No power-system or solver dependency is added to the MPCCModels runtime.
 
-A benchmark is accepted only after a successful solve, independent physical
-feasibility checks, and achieved coverage checks. A feasible constructed witness
+A correctness/regime regression is accepted after a successful solve, independent
+physical feasibility checks, and achieved coverage checks. Hard-case search has a
+separate retention rule: preserve all requested runs, including solver failures,
+exceptions and interrupted attempts. A verified numerical witness establishes
+feasibility independently of the failing solver; an unresolved witness search
+does not establish infeasibility. A feasible constructed witness
 is useful for debugging but does not establish an optimum or a solved regime.
 Report local solutions and selected-sector refinement honestly; do not claim
 global optimality or full MPCC stationarity from feasibility alone.
@@ -202,3 +206,39 @@ Validation of the review expansion: Julia 1.10.12/1.12.6 pass **578 model** and
 and **16 independent baseline** assertions after the changes. Documentation
 builds with offline external-link checking disabled. The expanded optional CI
 gate is committed; remote execution is pending.
+
+## Hard-case search: IEEE 118 capability intersection
+
+The immediate objective is to identify reproducible CCOpt difficulties. Keep
+failures and configuration-sensitive cases rather than filtering the search to
+examples the solver already handles. Preserve the original 22-case regression
+suite as a model-correctness check.
+
+- [x] Reproduce the IEEE 118 device-3 S=0.82 case: the current flat-start
+  homotopy reaches its iteration limit; a separately selected exact-sector
+  solve yields a numerically feasible point. Default-like and exact-start
+  settings give different outcomes, so this is a parameter/start-sensitive
+  candidate, not a universal CCOpt failure.
+- [ ] Sweep S ratings around the capability/VW/availability intersection while
+  holding availability, control profiles, network and costs fixed.
+- [ ] Compare flat, neighboring-case, seeded perturbed and verified-witness
+  starts; save their actual vectors and source provenance.
+- [ ] Compare explicit default-like/current settings and individual changes
+  to inner tolerance, relaxation ratio and relaxation floor.
+- [ ] Persist every raw result before any separate witness/refinement work;
+  retain exceptions, returned/current iterates and original physical checks.
+- [ ] Save full input snapshots, package/source fingerprints, effective solver
+  options, budgets, timings, checksums and replayable request records.
+- [ ] Verify and preserve feasible witnesses separately from homotopy results.
+- [ ] Warm up before timed trials, retain warmups separately, support safe
+  resume/replay, and summarize known-feasible failures versus accuracy gaps,
+  unresolved feasibility and interface errors.
+- [ ] Run a first complete matrix, curate the 0.82 reproduction and add tests
+  that verify the recorder without requiring a particular solver failure.
+
+The BMOPFTools comparison at `faf3d455381e15b651808c489237c0dd921d7cf7`
+([experiment notes](https://github.com/frederikgeth/BMOPFTools.jl/blob/faf3d455381e15b651808c489237c0dd921d7cf7/scripts/README.md))
+informs this design: active controls, solver/formulation controls, original-curve
+checks, sensitivity to inner tolerances, and timing after compilation. Product
+residuals alone do not measure the physical error of a steep droop curve. API
+exceptions and smooth-formulation overflow remain separate failure categories.
