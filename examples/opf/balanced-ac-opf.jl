@@ -1,6 +1,6 @@
 module BalancedACOPF
 
-using ADNLPModels, MPCCModels, NLPModels, SparseArrays
+using ADNLPModels, MPCCModels, NLPModels
 
 export BalancedACOPFModel, balanced_ac_opf_cases, balanced_ac_opf_case
 export balanced_ac_opf_reference, opf_volt_var, opf_volt_watt, opf_residuals
@@ -221,7 +221,6 @@ function BalancedACOPFModel(
         [one(T); -vv_weights],
         [one(T); -vw_weights],
     )
-    A = sparse(rows, cols, vals, 8, 18)
 
     denominator = data.resistance^2 + data.reactance^2
     g, b = data.resistance / denominator, -data.reactance / denominator
@@ -247,7 +246,19 @@ function BalancedACOPFModel(
         zeros(T, 4),
         T[data.smax^2, data.branch_rating^2, data.branch_rating^2],
     )
-    nlp = ADNLPModel(f, x0, lvar, uvar, A, c, lcon, ucon; name = "Balanced AC OPF ($case)")
+    nlp = ADNLPModel(
+        f,
+        x0,
+        lvar,
+        uvar,
+        rows,
+        cols,
+        vals,
+        c,
+        lcon,
+        ucon;
+        name = "Balanced AC OPF ($case)",
+    )
     return MPCCModel(nlp, ind_vcc1, ind_vcc2)
 end
 

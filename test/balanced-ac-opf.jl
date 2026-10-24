@@ -1,5 +1,3 @@
-using LinearAlgebra
-
 include(joinpath(@__DIR__, "..", "examples", "opf", "balanced-ac-opf.jl"))
 using .BalancedACOPF
 
