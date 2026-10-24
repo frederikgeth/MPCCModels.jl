@@ -39,3 +39,17 @@ jobs:
       - uses: julia-actions/cache@v3
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
+  opf-examples:
+    name: Solved OPF regime coverage - Julia 1.12
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.12'
+      - uses: julia-actions/cache@v3
+      - name: Install example dependencies against this checkout
+        run: julia --project=examples/opf -e 'using Pkg; Pkg.develop(path=pwd()); Pkg.instantiate()'
+      - name: Verify original feasibility and achieved controller regimes
+        run: julia --project=examples/opf examples/opf/test-solves.jl
