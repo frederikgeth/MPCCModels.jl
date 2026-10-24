@@ -142,3 +142,56 @@ misses. Raw and refined statuses/results are retained. Passing these checks
 establishes local numerical feasibility and the specified activity, not global
 optimality or full MPCC stationarity. An exploratory IEEE 118 capability overlay
 failed the homotopy gate and is not included among accepted cases.
+
+## Review and controlled studies
+
+The [review and next-case design](REVIEW.md) audits the original 22-case coverage,
+records correctness fixes and experimental results, and prioritizes the next
+profiles and systems. The original 22-case list remains stable. New constructors
+in `studies.jl` support reproducible studies without changing the source files:
+
+```julia
+include("examples/opf/pglib/transmission-opf.jl")
+using .TransmissionOPF
+
+base = pglib_control_case(:ieee118)
+replicas = controller_population_case(base; copies = 4) # 12 devices, same total size
+cluster = controller_placement_case(:ieee118; placement = :clustered)
+fleet = controller_fleet_case(:ieee118; count = 12, placement = :dispersed)
+thermal = network_limit_case(:thermal_to)
+relaxed = network_limit_case(:thermal_to; change = :relaxed)
+```
+
+`transmission_overlay(data; buses, generators, branches, load_scale, ...)` applies
+updates by original PGLib IDs to a copied per-unit dictionary and rebuilds all
+network records. It clears old targets unless explicitly supplied. Use this for
+network changes: the constructor rejects records inconsistent with `data.pm`,
+which drives independent physical checks and PowerModels comparisons. Controller
+changes can still be made with new controller records and a rebuilt model.
+Joint VV/VW region and fraction targets must share a feasible voltage interval.
+
+Placement experiments hold three devices fixed and compare dispersed, clustered
+and colocated sites, with homogeneous or heterogeneous profiles. Replica
+populations isolate formulation count at fixed aggregate physics. Distinct-site
+fleets use 1/3/6/12 homogeneous devices with constant total capacity and nested
+topology-based sites; changing site count also changes physical placement.
+Penetration sweeps independently scale ratings/availability/curve outputs.
+
+Eight network studies isolate voltage upper/lower, generator P/Q upper, thermal
+from/to, and angle upper/lower RHS effects on IEEE 14. They assert tight target
+bounds, slack competitors in the same family, both perturbation directions,
+half-step cost responses and matched dispatchable counterfactuals. Other network
+families may remain active; the branch-1 thermal study checks every other
+nonfixed network bound is slack. Results are local finite differences, not dual
+prices or global sensitivity certificates.
+
+```sh
+julia --project=examples/opf/pglib examples/opf/pglib/test-studies.jl
+julia --project=examples/opf/pglib examples/opf/pglib/run-studies.jl
+```
+
+The study tests distinguish frozen activity expectations from feasibility-only
+exploration. Diagnostics include normalized inverter margins, distance to each
+curve's nearest knot and conventional-generator fixed-box flags. Coincident
+knots currently have separate hinge pairs; replica populations therefore add
+redundancy at knees as well as increasing controller count.

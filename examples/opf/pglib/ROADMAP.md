@@ -101,8 +101,16 @@ availability or costs can change limiting constraints without changing region.
 - [x] Freeze first solved multi-controller overlays and independent targets.
 - [x] Add optional solver/coverage tests and runnable documentation.
 - [x] Add sensitivity-backed isolated inverter VW and capability-limit studies.
-- [ ] Add isolated voltage/thermal/generator/angle-limit perturbation studies.
-- [ ] Expand coverage strata, placement patterns and system sizes.
+- [x] Add isolated voltage/thermal/generator/angle-limit perturbation studies
+      on IEEE 14, with within-family isolation and explicit competitor checks.
+- [x] Develop matched three-device dispersed/clustered/colocated placement studies.
+- [x] Develop fixed-total replica populations and growing distinct-site fleets.
+- [x] Separate population, placement/profile and penetration experiments.
+- [ ] Freeze plateau, ramp-stratum and knee-neighbor coverage in transmission cases.
+- [ ] Develop heterogeneous distinct-site fleets with constant profile mixture.
+- [ ] Compare shared `(bus,knot)` hinges with explicitly redundant formulations.
+- [ ] Add the first IEEE 118 isolated network-limit sensitivity families.
+- [ ] Add RTS 24/IEEE 300 after the coverage gaps are addressed.
 
 ## Initial implementation and validation
 
@@ -159,3 +167,38 @@ availability or costs can change limiting constraints without changing region.
 - [Canonical formulation](https://github.com/power-grid-lib/pglib-opf/blob/dc6be4b2f85ca0e776952ec22cbd4c22396ea5a3/MODEL.tex)
 - [Baseline results](https://github.com/power-grid-lib/pglib-opf/blob/dc6be4b2f85ca0e776952ec22cbd4c22396ea5a3/BASELINE.md)
 - [Original synthetic case matrix](../CASE_DESIGN.md)
+
+## Review and study expansion
+
+The [implementation review](REVIEW.md) records the initial solved coverage census,
+structurally unreachable regions, corrected overlay/target validation gaps,
+placement/population experiments and recommended next named cases. The new study
+constructors and runner are separate from the initial 22-case registry.
+
+- Network overlays rebuild NLP records and independent-check data from one
+  copied authoritative dictionary. Stale records are rejected. VV/VW target
+  validation now intersects both laws and fraction windows at the shared voltage.
+- Diagnostics distinguish fixed generator boxes from economic bound activity
+  and expose normalized inverter margins and nearest-knot distances.
+- IEEE 14/118 studies compare three-device placement and profile homogeneity;
+  3/6/12 replica populations at fixed aggregate size; 1/3/6/12 controllers on
+  nested distinct bus sets; and independent 0.5/1/2 penetration levels.
+- IEEE 118 homogeneous clustering adds an observed VV knee. It still needs
+  left/right neighbors. Redundant coincident hinges remain explicitly identified
+  as a formulation characteristic, especially in replica/knee experiments.
+- Eight IEEE 14 network studies perturb one RHS in both directions and at half
+  step, assert target and competing bound activity, and compare dispatchable
+  policies on the same modified network. Isolating one family does not imply
+  every other network family is slack; the branch-1 thermal case additionally
+  checks this stronger property.
+- The branch-6 receiving-end study combines network-driven curtailment below a
+  slack VW cap at one device with strict VW curtailment at another device.
+- Remaining highest priorities are in-band absorption/lower-watt plateaus, ramp
+  strata away from availability crossovers, knees with neighbors, hardware-Q/VV
+  intersections and IEEE 118 location-sensitive thermal/controller interactions.
+
+Validation of the review expansion: Julia 1.10.12/1.12.6 pass **578 model** and
+**376 study** assertions. Julia 1.12.6 also passes the existing **235 solved-case**
+and **16 independent baseline** assertions after the changes. Documentation
+builds with offline external-link checking disabled. The expanded optional CI
+gate is committed; remote execution is pending.

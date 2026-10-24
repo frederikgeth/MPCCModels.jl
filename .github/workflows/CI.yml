@@ -71,3 +71,5 @@ jobs:
         run: julia --project=examples/opf/pglib examples/opf/pglib/validate-baselines.jl
       - name: Verify solved regimes, bound activity and limit perturbations
         run: julia --project=examples/opf/pglib examples/opf/pglib/test-solves.jl
+      - name: Verify placement, population and isolated network sensitivities
+        run: julia --project=examples/opf/pglib examples/opf/pglib/test-studies.jl
