@@ -563,6 +563,23 @@ Next application milestones:
 - [ ] Extend distinct-site fleet geography beyond topology rules when an explicit
       electrical-sensitivity siting study is justified by the application.
 
+### IEEE 300 application milestone
+
+- [x] Import IEEE 300 from the same pinned PGLib revision, preserving source bytes,
+      attribution and checksums; keep the 22 legacy overlays unchanged.
+- [ ] Independently validate canonical AC OPF against PowerModels/Ipopt, including
+      objective, original limits, complex-current balance and nonflat derivatives.
+- [ ] Extend all three application families with explicit IEEE 300 placements,
+      ratings and a topology-defined export cutset; preserve IEEE 118 inputs.
+- [ ] Run the nine family/operating inputs with current/ratio_one and flat/reference
+      starts, matched dispatchable baselines and separately verified witnesses.
+- [ ] Curate original residuals, curve/limit activity, unresolved coverage and raw
+      CCOpt failures; test portable records and document the next physical studies.
+
+Difficulty is measured, not required to increase with network size or severity.
+Feasible references qualify failures without asserting full-MPCC stationarity or
+global optimality. Long solver matrices remain manual research experiments.
+
 Validation: **2,648 expansion/model/archived-record assertions** pass on Julia
 1.10.12 and 1.12.6. Existing **1,320 application** and **578 transmission-model**
 assertions pass on Julia 1.12.6. Documenter builds locally with external link

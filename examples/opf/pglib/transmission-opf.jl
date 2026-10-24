@@ -16,7 +16,11 @@ const PGLIB_FILES = (
     ieee118 = "pglib_opf_case118_ieee.m",
     ieee14_api = "pglib_opf_case14_ieee__api.m",
     ieee118_api = "pglib_opf_case118_ieee__api.m",
+    ieee300 = "pglib_opf_case300_ieee.m",
 )
+
+# Frozen solved overlays; additional source networks have separate application catalogs.
+const LEGACY_NETWORKS = (:ieee14, :ieee118, :ieee14_api, :ieee118_api)
 
 """Read an unchanged, hash-verified PGLib fixture and convert to per unit.
 

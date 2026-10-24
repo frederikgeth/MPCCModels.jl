@@ -22,7 +22,7 @@ include("solve.jl")
             end
         end
     end
-    for network in keys(TransmissionOPF.PGLIB_FILES)
+    for network in TransmissionOPF.LEGACY_NETWORKS
         baseline = results[(network, :mixed, :dispatchable)]
         hardware = [
             (c.bus, c.p_available, c.smax, c.qmin, c.qmax, c.cost, c.quadratic_cost) for

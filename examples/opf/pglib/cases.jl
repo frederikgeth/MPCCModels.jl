@@ -20,7 +20,7 @@ function pglib_control_case(
         network != :ieee14 &&
         throw(ArgumentError("limit overlays are currently validated on IEEE 14 only"))
     is14 = network in (:ieee14, :ieee14_api)
-    network in keys(PGLIB_FILES) || throw(ArgumentError("unknown network"))
+    network in LEGACY_NETWORKS || throw(ArgumentError("unknown legacy overlay network"))
     buses = is14 ? (5, 9, 14) : (20, 45, 95)
     ratings = is14 ? (0.25, 0.35, 0.20) : (0.8, 1.2, 1.0)
     controllers = map(1:3) do i
@@ -70,7 +70,7 @@ end
 function transmission_cases()
     cases = [
         (network = network, laws = laws, scenario = :mixed) for
-        network in keys(PGLIB_FILES) for
+        network in LEGACY_NETWORKS for
         laws in (:canonical, :dispatchable, :vv, :vw, :both)
     ]
     append!(
@@ -217,6 +217,7 @@ function _control_targets(network, laws, scenario)
 end
 
 function _network_targets(network, laws, scenario)
+    network in LEGACY_NETWORKS || return []
     scenario != :mixed && return []
     bus = network in (:ieee14, :ieee14_api) ? 1 : network == :ieee118 ? 9 : 4
     targets = [(kind = :bus, id = bus, limit = :upper, state = :tight)]
