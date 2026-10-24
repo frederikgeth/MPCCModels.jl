@@ -2,8 +2,8 @@
 
 This optional example complements the small synthetic regime tests with full
 balanced transmission AC OPF. It uses pinned PGLib-OPF v23.07 IEEE 14 and 118
-networks and their congested `api` variants. See the [roadmap](ROADMAP.md) for the
-activation matrix, acceptance rules and further development, and the
+networks, their congested `api` variants, and IEEE 300. See the
+[roadmap](ROADMAP.md) for the activation matrix, acceptance rules and further development, and the
 [data provenance](data/README.md) for attribution, license and checksums.
 
 ## Run
@@ -120,7 +120,7 @@ Model tests compare every branch with PowerModels at non-flat voltage/angle
 points, independently evaluate complex-current AC balances, test nonzero phase
 shifts/unequal end shunts, and finite-difference Jacobians and Lagrangian Hessians.
 Independent PowerModels/Ipopt canonical solves are evaluated in our model, and
-their objectives are compared with our flat-start solves for all four fixtures.
+their objectives are compared with our flat-start solves for all five fixtures.
 
 The solver gate requires successful status, all original residual checks at
 `1e-5`, and achieved controller/network targets. Physical checks include AC

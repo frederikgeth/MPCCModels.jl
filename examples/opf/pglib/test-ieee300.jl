@@ -4,6 +4,7 @@ include("hard-search.jl")
 using .HardCaseSearch
 const H=HardCaseSearch
 const T=H.TransmissionOPF
+include("hard-cases/study-ieee300-limits.jl")
 
 @testset "IEEE 300 canonical import and original-ID mapping" begin
     data=T.transmission_case(:ieee300)
@@ -17,6 +18,7 @@ const T=H.TransmissionOPF
     @test !(T.TransmissionOPFModel(data) isa AbstractMPCCModel)
     @test sum(b.pd for b in data.buses)≈235.2585
     @test sum(b.qd for b in data.buses)≈77.8797
+    @test [g.id for g in data.generators if g.qmin>0]==[5, 44, 45]
     @test data.buses[end].id==9533
     @test isempty(data.targets) && isempty(data.network_targets)
     @test length(T.transmission_cases())==22
@@ -30,6 +32,11 @@ end
     base=T.transmission_case(:ieee300)
     source=deepcopy(base.pm)
     @test length(T.application_cases(; network = :ieee300))==9
+    @test all(c->c.network==:ieee300, T.application_cases(; network = :ieee300))
+    @test T.application_cases()==[
+        (family = f, level = l) for f in T.APPLICATION_FAMILIES for
+        l in T.APPLICATION_LEVELS
+    ]
     for spec in T.application_cases(; network = :ieee300)
         family, level=spec.family, spec.level
         card=T.application_card(family; network = :ieee300)
@@ -139,4 +146,160 @@ end
             resume = true,
         )
     end
+end
+
+@testset "Isolated IEEE 300 physical limits" begin
+    for family in (:renewable_surplus, :export_corridor)
+        base=ieee300_sensitivity_case(family)
+        modified=ieee300_sensitivity_case(family; modified = true)
+        @test base.network==modified.network==:ieee300
+        @test base.buses==modified.buses
+        if family==:renewable_surplus
+            @test modified.pm==base.pm
+            @test modified.controllers==[
+                merge(c, (smax = 1.1*c.smax,)) for c in base.controllers
+            ]
+        else
+            @test modified.generators==base.generators &&
+                  modified.controllers==base.controllers
+            boundary=base.provenance.export_boundary
+            @test [merge(b, (rate = 0.0,)) for b in modified.branches]==[merge(b, (rate = 0.0,)) for b in base.branches]
+            @test all(
+                a.rate≈(b.id in boundary ? b.rate/0.7 : b.rate) for
+                (a, b) in zip(modified.branches, base.branches)
+            )
+        end
+    end
+    @test_throws ArgumentError ieee300_sensitivity_case(:unknown)
+    @test_throws ArgumentError ieee300_sensitivity_case(:reactive_support; modified = true)
+end
+
+@testset "Portable IEEE 300 canonical, application and CCOpt evidence" begin
+    fixture=TOML.parsefile(joinpath(@__DIR__, "hard-cases", "ieee300-applications.toml"))
+    bits(x) = bytes2hex(H.sha256(join(bitstring.(Float64.(x)), "\n")))
+    @test fixture["network"]=="ieee300"
+    @test fixture["source_revision"]==T.PGLIB_REVISION
+    @test fixture["source_file_sha256"]==H._sha(
+        joinpath(@__DIR__, "data", fixture["source_file"]),
+    )
+    function check_point(data, row)
+        @test bits(row["x"])==row["point_bits_sha256"]
+        if haskey(row, "start")
+            @test bits(row["start"])==row["start_bits_sha256"]
+            @test length(row["start"])==T.transmission_layout(data).nvar
+        end
+        model=T.TransmissionOPFModel(data)
+        metrics=H._metrics(model, data, row["x"], row["tolerance"])
+        @test metrics["physically_feasible"]==row["physically_feasible"]
+        @test metrics["objective"]≈row["objective"] atol=1e-5
+        for (k, v) in row["residuals"]
+            @test metrics["residuals"][k]≈v atol=1e-8
+        end
+        return metrics
+    end
+    canonical=T.transmission_case(:ieee300)
+    base=fixture["canonical"]
+    @test H._digest(H._snapshot(canonical))==base["input_snapshot_sha256"]
+    for solver in ("madnlp", "powermodels")
+        @test maximum(values(check_point(canonical, base[solver])["residuals"]))<=1e-7
+    end
+    @test base["madnlp"]["objective"]≈base["powermodels"]["objective_powermodels"] atol=1e-4
+    @test length(fixture["cases"])==9
+    @test length(fixture["trials"])==36
+    expected=Dict(
+        k=>count(r->r["classification"]==k, fixture["trials"]) for
+        k in keys(fixture["classifications"])
+    )
+    @test expected==fixture["classifications"]
+    for row in fixture["cases"]
+        family, level=Symbol(row["family"]), Symbol(row["level"])
+        data=T.application_case(family; network = :ieee300, level)
+        @test H._digest(H._snapshot(data))==row["input_snapshot_sha256"]
+        @test H._plain(T.application_card(family; network = :ieee300))==row["card"]
+        if row["witness_available"]
+            witness=row["witness"]
+            @test maximum(values(check_point(data, witness)["residuals"]))<=1e-7
+            @test H._plain(T.application_coverage(data, witness["x"]))==row["witness_coverage"]
+        end
+        baseline=T.application_case(family; network = :ieee300, level, laws = :dispatchable)
+        check_point(baseline, row["counterfactual_record"])
+        if haskey(row, "counterfactual_coverage")
+            @test H._plain(
+                T.application_coverage(baseline, row["counterfactual_record"]["x"]),
+            )==row["counterfactual_coverage"]
+        end
+    end
+    for row in fixture["trials"]
+        @test row["network"]=="ieee300"
+        data=T.application_case(
+            Symbol(row["family"]);
+            network = :ieee300,
+            level = Symbol(row["level"]),
+        )
+        @test H._digest(H._snapshot(data))==row["case_sha256"]
+        if row["classification"]=="unavailable_start"
+            @test row["status"]=="not_run" && !haskey(row, "x")
+        else
+            @test row["environment"]["source_fingerprint"]==fixture["plan"]["environment"]["source_fingerprint"]
+            @test H._category(row)==row["classification"]
+        end
+        haskey(row, "x") && check_point(data, row)
+    end
+    witnessed=filter(r->r["witness_available"], fixture["cases"])
+    @test length(witnessed)==7
+    @test all(
+        all(
+            c->!(c["id"] in row["witness_coverage"]["vw_binding"]) ||
+               abs(c["margins"]["availability"])<=1e-5,
+            row["witness_coverage"]["controllers"],
+        ) for row in witnessed
+    )
+    severe=only(
+        filter(r->r["family"]=="renewable_surplus" && r["level"]=="severe", witnessed),
+    )["witness_coverage"]
+    @test length(severe["capability_binding"])==3
+    @test all(
+        c->!(c["id"] in severe["capability_binding"]) ||
+           (c["margins"]["availability"]>1e-5 && c["margins"]["volt_watt"]>1e-5),
+        severe["controllers"],
+    )
+    export_case=only(
+        filter(r->r["family"]=="export_corridor" && r["level"]=="severe", witnessed),
+    )["witness_coverage"]
+    @test Set([63, 66]) ⊆ Set(export_case["network_tight"]["thermal_to"])
+    studies=fixture["sensitivities"]
+    @test length(studies)==4
+    for row in studies
+        data=ieee300_sensitivity_case(
+            Symbol(row["family"]);
+            modified = row["label"]=="modified",
+        )
+        record=row["record"]
+        @test H._digest(H._snapshot(data))==record["case_sha256"]
+        check_point(data, record)
+        if row["verified"]
+            @test maximum(values(record["residuals"]))<=1e-7
+            @test H._plain(T.application_coverage(data, record["x"]))==row["coverage"]
+        end
+    end
+    for family in unique(r["family"] for r in studies)
+        pair=filter(r->r["family"]==family, studies)
+        a=only(filter(r->r["label"]=="reference", pair))["record"]
+        b=only(filter(r->r["label"]=="modified", pair))["record"]
+        @test a["start"]==b["start"]
+        @test a["profile"]==b["profile"]
+        @test a["sector_mask"]==b["sector_mask"]
+    end
+    oversized=only(
+        filter(r->r["family"]=="renewable_surplus" && r["label"]=="modified", studies),
+    )["coverage"]
+    @test isempty(oversized["capability_binding"])
+    @test length(oversized["vw_binding"])==3
+    @test all(
+        c->!(c["id"] in oversized["vw_binding"]) || abs(c["margins"]["availability"])<=1e-5,
+        oversized["controllers"],
+    )
+    @test length(
+        readlines(joinpath(@__DIR__, "hard-cases", "ieee300-applications-sweep.tsv")),
+    )==37
 end

@@ -554,7 +554,7 @@ reference attempts, including unverified reference solves, remain archived local
 
 Next application milestones:
 
-- [ ] Import/pin IEEE 300 and independently validate its canonical AC OPF,
+- [x] Import/pin IEEE 300 and independently validate its canonical AC OPF,
       then supply network-specific placements/ratings for the existing families.
 - [ ] Characterize matched VV-only/VW-only policies using the existing factories;
       keep physical effects, measured activity and difficulty as separate outputs.
@@ -571,9 +571,9 @@ Next application milestones:
       objective, original limits, complex-current balance and nonflat derivatives.
 - [x] Extend all three application families with explicit IEEE 300 placements,
       ratings and a topology-defined export cutset; preserve IEEE 118 inputs.
-- [ ] Run the nine family/operating inputs with current/ratio_one and flat/reference
+- [x] Run the nine family/operating inputs with current/ratio_one and flat/reference
       starts, matched dispatchable baselines and separately verified witnesses.
-- [ ] Curate original residuals, curve/limit activity, unresolved coverage and raw
+- [x] Curate original residuals, curve/limit activity, unresolved coverage and raw
       CCOpt failures; test portable records and document the next physical studies.
 
 Difficulty is measured, not required to increase with network size or severity.
@@ -594,3 +594,60 @@ identical returned point and original residuals. Complete local archives are
 `8ca51806b0b0c83faa068126fcbc7c1be44f91fd2065e094863059e30817be37`)
 and `search-results/ieee118-fleets-2026-10-25.tar.gz` (SHA-256
 `f98c1b13c75d4a210b95a50a6328adc8f99e49411f53fadb73823d6fecfcb164`).
+
+### IEEE 300: measured completion
+
+The [IEEE 300 guide](IEEE300.md) documents the pinned 300/411/69 source,
+738-variable / 1,833-constraint canonical AC OPF and independent PowerModels/Ipopt
+agreement at approximately 565,219.990890. All three application families now
+accept network-specific placements/ratings through `network=:ieee300`. The nine
+operating inputs retain matched dispatchable/VV/VW/both-policy construction;
+IEEE 118 snapshots and the 22-case legacy registry remain unchanged.
+
+The 36-request matrix executes 32 CCOpt solves and records four unavailable
+reference starts: **11 passes, 20 solver failures and one original-VV accuracy
+gap**. **16 solver failures have independently checked feasible references**;
+four belong to unresolved inputs. Seven controlled inputs have strict references
+(maximum original residual 1.63e-8). Seven dispatchable baselines pass; elevated
+and severe reactive baselines also fail. Those two operating inputs remain
+unresolved and are not counted as established feasible CCOpt challenges.
+
+Nominal reactive support and elevated export fail both profiles from both starts.
+Elevated/severe surplus challenge ratio_one from both starts. Coverage includes
+all three finite VV parts, knot positions, VW upper plateau/ramp, binding VW
+caps coincident with availability, strict inverter-circle limitation, and native
+P/Q, voltage and thermal limits. No strict VW limitation, VV
+outer plateau, VW lower plateau or native angle limit is reached in this cohort.
+Plant Q boxes intentionally lie outside the entire VV range. The two strongest
+reactive scenarios have no claimed achieved coverage.
+
+Four additional checked local sensitivity points isolate S-circle oversizing
+and cutset-rating relief with identical starts/settings/hinge masks within each
+pair. Oversizing releases three S circles but reaches joint availability/VW caps and
+reduces curtailment by only 3.02 MW; export rating relief reduces it by 261.32 MW.
+These are selected-sector local responses, not global sensitivity certificates.
+
+Next IEEE 300 case-design matrix, in priority order:
+
+| Study axis | Proposed physical cases | Admission / comparison |
+| --- | --- | --- |
+| Reactive operating frontier | Load 1/1.025/1.05 and signed Q interval factors 1/.95/.9/.85/.8, with other plant inputs held fixed within each sweep | Check dispatchable and controlled references; retain unresolved candidates separately; do not infer infeasibility from local statuses |
+| Conventional reactive reserve | Derate selected positive Q upper bounds at fixed Q lower bounds, then release only those upper bounds | Source generators 5/44/45 have positive Q minima; signed interval scaling is not a nested one-sided reserve study |
+| VV/VW policy coverage | Lower-amplitude reactive saturation services and earlier active-power backstops, followed by matched VV-only/VW-only/both policies | Measure strict plateau/ramp positions and VW-limited dispatch with slack availability; preserve hardware and availability within each policy comparison |
+| Fleet geography/population | 6/12/24 units at constant aggregate hardware/availability/profile mixture; same-site and distinct-site controls | Require voltage-class/interface eligibility for distinct sites, avoiding automatic GW placements at small low-voltage radial attachments; geography changes are not pure count changes |
+| Operating sequences | Load/availability/reserve trajectories through verified curve and native-limit transitions | Compare flat and checked neighboring/reference starts; report physical transitions separately from raw CCOpt difficulty |
+
+The high-priority difficulty benchmarks are already available. Resolving every
+stress input or explaining a solver failure is not required before implementing
+these physically motivated extensions. Publishing complete portable archives and
+running remote CI remain follow-up work; the committed receipts support local
+validation without the long searches.
+
+Validation: **1,146 IEEE 300 assertions** pass on Julia 1.10.12 and 1.12.6,
+including all archived raw points, strict references, independent canonical
+points, sparse nonflat derivatives, case/policy invariants, isolated-limit
+recipes and recorder resume integrity. The five-network independent canonical
+suite passes **20 assertions**; existing **578 model**, **235 solved-case**,
+**419 hard-search**, **1,320 application** and **2,648 expansion** assertions pass
+on Julia 1.12.6. Documenter builds locally with external link checking disabled.
+Remote CI and publication of the full local archives remain pending.

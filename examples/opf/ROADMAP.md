@@ -154,3 +154,9 @@ in this matrix continue to apply alongside the fixed reactive-power law.
 The next stage is tracked in the [PGLib roadmap](pglib/ROADMAP.md), including
 canonical import validation, matched control overlays, solved regime coverage
 and sensitivity checks for binding equipment limits.
+
+The transmission expansion now includes independently validated IEEE 300 and
+three network-specific application families. Its first 36-request matrix retains
+16 solver failures on known-feasible inputs, an original-law accuracy gap and
+unresolved reactive stress inputs separately. See the [IEEE 300 guide](pglib/IEEE300.md)
+for measured physical coverage, local limit responses and the next case matrix.

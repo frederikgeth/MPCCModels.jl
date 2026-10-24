@@ -188,3 +188,49 @@ Full local artifacts and sibling archives are under ignored
 [extension guide](../EXPANSIONS.md) defines physical scope, policies, geography,
 reference construction and measured outcomes. PGLib attribution/license are
 retained; these are synthetic study overlays, not new official PGLib releases.
+
+## IEEE 300 application records
+
+`ieee300-applications.toml` preserves the independently checked canonical
+MadNLP/PowerModels points, all 32 executed CCOpt starts/returned vectors, four
+unavailable starts, seven strict controlled references, nine matched dispatchable
+outcomes and four selected-sector physical sensitivity points. Both failed
+baselines and unresolved inputs remain explicit. Float64 bit hashes and complete
+input snapshot hashes guard the stored points and factory reconstruction.
+`ieee300-applications-sweep.tsv` contains every requested trial. See the
+[IEEE 300 guide](../IEEE300.md) for exact placements, physical coverage and scope.
+
+The 36-request cohort has 11 successes, 20 solver failures, one solved-status
+original-VV accuracy gap and four unavailable starts. Sixteen solver failures
+are on inputs with strict numerical feasibility witnesses. The four actual
+failures on elevated/severe reactive inputs remain unresolved; their baselines
+also fail. Neither a local infeasibility status nor a failed witness search
+certifies the full problem infeasible. Future CCOpt releases need not retain
+any of these failures; tests re-evaluate the archived numerical evidence.
+
+Raw solves use current/ratio_one, flat/verified-reference primal starts, 500
+iterations and 60 seconds. The complete source fingerprint is from commit
+`42a641d`; the source tree, environment, full inputs, all failed reference attempts
+and solver logs are archived locally. A later catalog metadata change leaves
+all reconstructed physical input hashes unchanged. Resume before that change
+preserves all 312 raw/baseline/reference/input files byte for byte.
+
+Complete local archives under ignored `examples/opf/pglib/search-results/`:
+
+| Archive | SHA-256 |
+| --- | --- |
+| `ieee300-applications-2026-10-25.tar.gz` | `1d423d3b080d7a842013145c4a6db61f979cec3a74e7fe6f27194a5a7cbaa951` |
+| `ieee300-canonical-validation-2026-10-25.tar.gz` | `0f369a59cb9b0a2c70980eb25b0000250415fff6f814e6d317fe018e8c55e504` |
+| `ieee300-limit-sensitivities-2026-10-25.tar.gz` | `914102276fcd95db8e80a6c72eb15f8b974bdc34c42683b222d396a09bbdeeea` |
+| `ieee300-exploratory-2026-10-25.tar.gz` | `8ee29436d5054e76e59d455d7a02b48f181868c612f25dbb7d6584470e474749` |
+
+The exploratory archive preserves an interrupted preliminary run during which
+a reporting-only edit occurred. It is excluded from the characterized cohort;
+the formal run was restarted on frozen committed production code. The canonical
+validation archive also retains the exact imported source and its licensing.
+
+Manual utilities in this directory regenerate independent canonical receipts
+(`validate-ieee300.jl`), isolate S-circle/cutset-rating responses from strict
+references (`study-ieee300-limits.jl`), and build the portable receipt from
+completed searches (`curate-ieee300.jl`). Their commands and the admission gates
+are documented in the study guide. They do not overwrite raw attempts.

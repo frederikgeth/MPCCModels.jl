@@ -228,9 +228,9 @@ end
 """Initial nine physical operating points; policy variants are selected separately."""
 function application_cases(; network::Symbol = :ieee118)
     application_card(first(APPLICATION_FAMILIES); network)
-    return [
-        (family = f, level = l) for f in APPLICATION_FAMILIES for l in APPLICATION_LEVELS
-    ]
+    cases =
+        [(family = f, level = l) for f in APPLICATION_FAMILIES for l in APPLICATION_LEVELS]
+    return network==:ieee118 ? cases : [merge(c, (network = network,)) for c in cases]
 end
 
 export application_coverage
