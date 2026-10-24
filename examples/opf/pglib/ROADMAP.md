@@ -18,32 +18,57 @@ is useful for debugging but does not establish an optimum or a solved regime.
 Report local solutions and selected-sector refinement honestly; do not claim
 global optimality or full MPCC stationarity from feasibility alone.
 
-## Development stages
+## Current application-driven roadmap
 
-1. **Import and canonical foundation.** IEEE 14 (20 branches), then IEEE 118
-   (186 branches), plus their `api` variants. Preserve shunts, line charging,
-   fixed transformer taps/phase shifts, conventional generator P/Q bounds,
-   quadratic production costs, both branch-end ratings, voltage bounds and
-   branch angle-difference limits. Fix only the reference angle. Validate the
-   uncontrolled NLP against PowerModels at the same operating point and compare
-   independently solved objectives, allowing different local minima explicitly.
-2. **Matched controller overlays.** Keep conventional generators; add explicitly
-   rated inverter injections. Compare dispatchable P/Q, VV only, VW only and both
-   on identical hardware, availability, costs and network data. Curves use local
-   voltage but system-base power; record conversions from device bases. Do not
-   assume every generator is a VV-controlled inverter.
-3. **First accepted matrix.** Start with a few dispersed controllers on IEEE 14
-   and IEEE 118. Add homogeneous and heterogeneous profiles. Use feasible
-   in-band breakpoints, and freeze independently specified solved targets.
-4. **Binding-limit studies.** Use `api` cases for congestion, then isolate
-   capability circles, voltage bounds, conventional P/Q bounds, branch ends,
-   availability and VW caps. Add load/availability variations and clustered or
-   colocated controllers. Demonstrate effects with matched controls disabled
-   and small limit perturbations; distinguish tightness from economic influence.
-5. **Scaling.** Add RTS 24 and IEEE 300, then selected larger systems. Increase
-   controller count separately from network size. Report dimensions, sparsity,
-   residuals, starts, status, polishing, runtime and achieved activity. Keep
-   expensive or unstable experiments outside the fast test gate.
+The deliverable is a set of parameterized OPF families motivated by operating
+applications, containing ordinary and deliberately stressed instances. CCOpt
+difficulty is measured within these families. Explaining or minimizing a solver
+failure is optional supporting work, not a gate for adding cases or larger
+networks. Existing search traces, witnesses and reduction experiments remain
+useful infrastructure and an explicitly labelled formulation/degeneracy family.
+
+1. **Specify applications.** Define physical interpretation, plant locations and
+   ratings, synthetic controller policies, operating parameters and intended
+   interactions. The first IEEE 118 families cover high renewable output/light
+   demand, limited reactive support, and constrained renewable export. These are
+   balanced positive-sequence transmission/aggregate-plant study proxies, not
+   calibrated distribution feeders or mandatory grid-code parameter sets.
+2. **Build tunable graded instances.** Supply nominal/elevated/severe operating
+   points with independent parameter overrides and matched dispatchable/VV/VW/both
+   variants on identical network/hardware/availability. Physical severity labels
+   do not predict solver difficulty. Use heterogeneous multi-controller plants;
+   retain compatible subsets of VV/VW regimes, bounds, ramps and knees.
+3. **Validate and characterize.** Require correct equations/derivatives,
+   provenance and independent original physical checks. Claim feasibility only
+   with a verified numerical witness. Record achieved curve regions, fractions,
+   curtailment and network/device margins separately from intended mechanisms.
+   CCOpt success or a full optimality certificate is not required to admit a
+   feasible challenge case. Retain unresolved cases without calling them infeasible.
+4. **Select challenges within applications.** Sweep load, renewable output,
+   reactive headroom, export capacity, placement and population over documented
+   ranges. Preserve easy-through-hard instances rather than only failures. Use
+   fixed solver/start budgets, multiple starts and original-curve checks to
+   distinguish passes, accuracy gaps, iteration/runtime limits and exceptions.
+5. **Expand coverage and scale.** Add missing plateaus, ramp strata, knees and
+   multi-plant interactions based on achieved coverage. Extend network size and
+   plant population independently, including RTS 24/IEEE 300 once import and
+   validation are ready. This work does not depend on diagnosing existing failures.
+
+### First implementation milestone
+
+- [ ] Add three application cards and parameterized IEEE 118 constructors, each
+      with three physical operating levels and heterogeneous plants.
+- [ ] Add matched policy variants, input/derivative tests and application metadata.
+- [ ] Run the first nine both-law inputs with multiple starts/settings, matched
+      dispatchable baselines, separate witnesses and complete failure retention.
+- [ ] Report achieved activity/curve coverage, measured difficulty and gaps;
+      curate physically verified records and keep unsuccessful searches intact.
+- [ ] Extend application-specific plateau/ramp coverage and population/placement
+      variations, then larger networks, using the same building blocks.
+
+The original import, canonical validation and 22-case solved registry are retained.
+Their completed development and the historical search/reduction results below
+remain evidence; current priorities are the application families above.
 
 ## Matrix design
 
@@ -309,7 +334,7 @@ knee neighbors also fail, so neither Q tightness nor exact VV/VW coincidence
 alone explains the difficulty. See [protocol/results](HARD_SEARCH.md) and
 [portable records](hard-cases/README.md#ratio-one-transitionq-limit-receipt).
 
-Next reductions, keeping raw results and verified witnesses for every variant:
+Historical reduction plan (supporting formulation study; not a gate for application expansion):
 
 - [ ] Compare one, two and three active controllers while retaining the other
       devices as matched dispatchable injections; distinguish controller count
@@ -321,7 +346,7 @@ Next reductions, keeping raw results and verified witnesses for every variant:
 - [ ] Split same-bus devices across nearby buses while keeping profiles and
       aggregate ratings fixed; preserve the knee/Q activity evidence.
 - [ ] Check selected-sector objective/stationarity diagnostics and report which
-      failure persists before extending to IEEE 300 or larger fleets.
+      failure persists as a supporting formulation study.
 
 Validation: **419 recorder/archived-point assertions** pass on Julia 1.10.12
 and 1.12.6, and the existing **578 transmission-model assertions** pass on
@@ -385,16 +410,16 @@ reference and representative convergence series. Long runs remain manual; CI
 checks encoding equivalence, derivatives, witness/point integrity, tracing and
 resume/replay without requiring future solvers to keep failing.
 
-Next priorities:
+Optional diagnostic follow-ups (superseded as the main development agenda):
 
 - [ ] Reduce the network/dispatchable-device complexity of the five-pair case
       while preserving a reproducible flat-start failure and verified witness.
 - [ ] Compare physical-accuracy requirements with inner tolerance and actual
       mu/sigma at termination; retain accuracy gaps independently of solver status.
 - [ ] Examine selected-sector objective and stationarity evidence separately
-      from feasibility before promoting new examples into the solved registry.
+      from feasibility when assessing optimality claims for solved examples.
 - [ ] Test nearby bus placements after the minimal failure and matched encoding
-      recovery are stable; defer larger networks until these contrasts are clear.
+      recovery; larger-network/application development proceeds independently.
 
 Validation: **585 reduction/curated-record assertions** pass on Julia 1.10.12
 and 1.12.6. Existing **419 hard-search**, **578 transmission-model** and **235
