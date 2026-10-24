@@ -81,3 +81,5 @@ jobs:
         run: julia --project=examples/opf/pglib examples/opf/pglib/test-applications.jl
       - name: Verify application regime coverage and fixed-total fleet invariants
         run: julia --project=examples/opf/pglib examples/opf/pglib/test-expansions.jl
+      - name: Verify IEEE 300 applications, derivatives and archived evidence
+        run: julia --project=examples/opf/pglib examples/opf/pglib/test-ieee300.jl

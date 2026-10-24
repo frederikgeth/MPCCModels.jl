@@ -6,10 +6,18 @@ function _save_application(
     family,
     level,
     laws;
+    network::Symbol = :ieee118,
     overrides = (;),
     hinge_encoding = :separate,
 )
-    data = application_case(family; level, laws, parameters = overrides, hinge_encoding)
+    data = application_case(
+        family;
+        network,
+        level,
+        laws,
+        parameters = overrides,
+        hinge_encoding,
+    )
     key = "$(family)-$(level)-$(laws)"
     path = joinpath(directory, "cases", key, "input.toml")
     snapshot = _snapshot(data)
@@ -31,6 +39,7 @@ and original physical feasibility are reported independently of intended effects
 """
 function run_application_search(
     directory;
+    network::Symbol = :ieee118,
     families = collect(TransmissionOPF.APPLICATION_FAMILIES),
     levels = collect(TransmissionOPF.APPLICATION_LEVELS),
     profiles = [:current, :ratio_one],
@@ -55,6 +64,7 @@ function run_application_search(
     for family in families, level in levels
         application_case(
             family;
+            network,
             level,
             parameters = get(overrides, family, (;)),
             hinge_encoding,
@@ -67,6 +77,7 @@ function run_application_search(
     plan = Dict(
         "schema"=>SCHEMA,
         "family"=>"application_catalog",
+        "network"=>string(network),
         "families"=>string.(families),
         "levels"=>string.(levels),
         "profiles"=>_plain(settings),
@@ -94,6 +105,7 @@ function run_application_search(
         first(families),
         first(levels),
         :both;
+        network,
         overrides = get(overrides, first(families), (;)),
         hinge_encoding,
     )
@@ -123,6 +135,7 @@ function run_application_search(
                 family,
                 level,
                 :both;
+                network,
                 overrides = override,
                 hinge_encoding,
             )
@@ -131,6 +144,7 @@ function run_application_search(
                 family,
                 level,
                 :dispatchable;
+                network,
                 overrides = override,
                 hinge_encoding,
             )
@@ -321,6 +335,7 @@ function summarize_applications(directory)
             copy(p["provenance"]),
             Dict{String,Any}(
                 "trial"=>relpath(path, directory),
+                "network"=>string(data.network),
                 "trial_id"=>first(split(name, "-attempt-")),
                 "start"=>p["start_label"],
                 "profile"=>p["profile"]["name"],
@@ -346,7 +361,7 @@ function summarize_applications(directory)
             all(isfinite, x) && (row["coverage"]=_plain(application_coverage(data, x)))
         end
         if !haskey(cases, key)
-            card=application_card(Symbol(p["provenance"]["family"]))
+            card=application_card(Symbol(p["provenance"]["family"]); network = data.network)
             cases[key]=Dict(
                 "family"=>p["provenance"]["family"],
                 "level"=>p["provenance"]["level"],
@@ -408,6 +423,7 @@ function summarize_applications(directory)
     columns=[
         "trial",
         "superseded",
+        "network",
         "family",
         "level",
         "start",

@@ -4,7 +4,7 @@ using Test, PowerModels, Ipopt, JuMP
 include("solve.jl")
 
 @testset "Canonical PGLib baselines against PowerModels" begin
-    for network in (:ieee14, :ieee118, :ieee14_api, :ieee118_api)
+    for network in (:ieee14, :ieee118, :ieee14_api, :ieee118_api, :ieee300)
         @testset "$network" begin
             d = transmission_case(network)
             result = solve_transmission(d; verbose = false)

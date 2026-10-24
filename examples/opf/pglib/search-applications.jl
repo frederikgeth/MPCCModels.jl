@@ -3,7 +3,7 @@ using .HardCaseSearch
 
 function main_applications(args)
     "--help" in args && return println(
-        "search-applications.jl --out=DIR [--families=renewable_surplus,reactive_support,export_corridor] [--levels=nominal,elevated,severe] [--profiles=current,ratio_one] [--seeds=20261025,20261026] [--max-iter=500] [--max-wall=60] [--trace-every=0] [--resume] | --summarize=DIR",
+        "search-applications.jl --out=DIR [--network=ieee118|ieee300] [--families=renewable_surplus,reactive_support,export_corridor] [--levels=nominal,elevated,severe] [--profiles=current,ratio_one] [--seeds=20261025,20261026] [--max-iter=500] [--max-wall=60] [--trace-every=0] [--resume] | --summarize=DIR",
     )
     values=Dict{String,String}()
     resume=false
@@ -27,7 +27,9 @@ function main_applications(args)
     kwargs=Dict{Symbol,Any}()
     for (k, v) in values
         k=="out" && continue
-        if k in ("families", "levels", "profiles")
+        if k=="network"
+            kwargs[:network]=Symbol(v)
+        elseif k in ("families", "levels", "profiles")
             kwargs[Symbol(k)]=Symbol.(split(v, ','))
         elseif k=="seeds"
             kwargs[:seeds]=parse.(Int, split(v, ','))

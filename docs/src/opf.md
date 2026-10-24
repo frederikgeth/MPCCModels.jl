@@ -290,6 +290,16 @@ data = application_case(:reactive_support; level=:severe)
 model = TransmissionOPFModel(data)
 ```
 
+The same constructors accept `network=:ieee300`. This adds a pinned 300-bus,
+411-branch, 69-generator canonical AC OPF independently checked against
+PowerModels/Ipopt, plus nine operating inputs with network-specific plant
+placements and ratings. The canonical model has 738 variables and 1,833
+constraints. The IEEE 118 defaults and original 22 solved overlays retain their
+definitions. See the [IEEE 300 study guide](https://github.com/frederikgeth/MPCCModels.jl/blob/codex/opf-volt-var-watt/examples/opf/pglib/IEEE300.md)
+for the physical matrix, coverage and raw CCOpt results. Select `--network=ieee300`
+in `search-applications.jl` to run this matrix with the existing failure-retaining
+recorder and independently checked references.
+
 These are synthetic balanced steady-state transmission/aggregate-plant proxies,
 with a documented scope rather than prescribed inverter settings or calibrated
 feeders. The optional `search-applications.jl` runner retains raw outcomes,

@@ -1,7 +1,7 @@
 # Application-driven balanced OPF families
 
 These families study steady-state economic dispatch with voltage-responsive
-aggregate inverter plants in the pinned PGLib IEEE 118 transmission network.
+aggregate inverter plants in the pinned PGLib IEEE 118 and IEEE 300 transmission networks.
 Local VV/VW functions have an established PV voltage-regulation application;
 see the [NREL/Hawaiian Electric simulation and field pilot report](https://research-hub.nlr.gov/en/publications/advanced-inverter-voltage-controls-simulation-and-field-pilot-fin/).
 The inputs here are synthetic balanced transmission proxies: neither calibrated
@@ -11,12 +11,17 @@ production. Conventional generation retains PGLib costs and P boxes.
 
 ## Physical case definitions
 
-`application_case(family; level=:nominal, laws=:both, parameters=(;),
+`application_case(family; network=:ieee118, level=:nominal, laws=:both, parameters=(;),
 hinge_encoding=:separate)` creates an ordinary ADNLPModel-compatible data record.
 `TransmissionOPFModel(data)` returns the existing ADNLPModel or MPCCModel.
 `application_card(family)` describes the motivation, sites, rating template,
 intended interactions and applicable knobs. `application_cases()` lists the
 initial nine operating points, separately from the original 22 solved cases.
+Pass `network=:ieee300` to the case, card, parameters or catalog functions for
+the larger network. The [IEEE 300 guide](IEEE300.md) defines its placements,
+ratings, canonical validation and measured characterization. Tables below
+describe the original IEEE 118 placements; the operating parameter table applies
+to both networks.
 
 The system base is 100 MVA. Plant ratings below are system-base pu before the
 penetration multiplier. Availability means `P_available/S`; all plant Q boxes

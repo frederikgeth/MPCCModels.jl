@@ -243,6 +243,11 @@ data = application_case(:export_corridor; level=:severe)
 model = TransmissionOPFModel(data)
 ```
 
+The [IEEE 300 extension](IEEE300.md) adds a validated 300-bus canonical AC OPF
+and nine larger application inputs. Select `network=:ieee300` in the existing
+application constructors or `--network=ieee300` in the search CLI. IEEE 118
+defaults and the original solved-case registry retain their definitions.
+
 `search-applications.jl` characterizes the first nine combined-policy inputs
 against matched dispatchable baselines, preserving raw failures and separately
 verified witnesses. Reports keep achieved physical coverage and solver

@@ -567,9 +567,9 @@ Next application milestones:
 
 - [x] Import IEEE 300 from the same pinned PGLib revision, preserving source bytes,
       attribution and checksums; keep the 22 legacy overlays unchanged.
-- [ ] Independently validate canonical AC OPF against PowerModels/Ipopt, including
+- [x] Independently validate canonical AC OPF against PowerModels/Ipopt, including
       objective, original limits, complex-current balance and nonflat derivatives.
-- [ ] Extend all three application families with explicit IEEE 300 placements,
+- [x] Extend all three application families with explicit IEEE 300 placements,
       ratings and a topology-defined export cutset; preserve IEEE 118 inputs.
 - [ ] Run the nine family/operating inputs with current/ratio_one and flat/reference
       starts, matched dispatchable baselines and separately verified witnesses.
