@@ -1,4 +1,31 @@
 @testset "MPCCModel Tests" begin
+    @testset "VarVar complementarity Jacobians with mixed constraints" for T in (
+        Float64,
+        Float32,
+    )
+        f(x) = sum(abs2, x)
+        c(x) = [x[1]^2 + x[3]]
+        nlp = ADNLPModel(
+            f,
+            ones(T, 3),
+            zeros(T, 3),
+            fill(T(Inf), 3),
+            [1, 1],
+            [1, 2],
+            T[1, 2],
+            c,
+            T[0, 0],
+            T[0, Inf],
+        )
+        mpcc = MPCCModel(nlp, [1], [3])
+        x = get_x0(mpcc)
+        @test get_lin_nnzj(nlp) != get_nnzj(nlp)
+        @test jac_comp_left_structure(mpcc) == ([1], [1])
+        @test jac_comp_right_structure(mpcc) == ([1], [3])
+        @test jac_comp_left(mpcc, x) ≈ T[1 0 0]
+        @test jac_comp_right(mpcc, x) ≈ T[0 0 1]
+    end
+
     @testset "VarVar API" for T in [Float64, Float32]
         f(x) = (x[1] - 1)^2 + (x[2] - 1)^2
         ∇f(x) = T[2 * (x[1] - 1); 2 * (x[2] - 1)]

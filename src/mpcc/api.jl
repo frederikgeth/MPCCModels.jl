@@ -592,7 +592,7 @@ function jac_comp_left_structure!(
 )
     _rows = mpcc._i1
     _cols = mpcc._i2
-    jac_lin_structure!(mpcc.nlp, _rows, _cols) # get including complementarities
+    jac_structure!(mpcc.nlp, _rows, _cols) # get including complementarities
 
     @views begin
         rows[1:length(get_ind_j_comp_left_triplets(mpcc))] .=
@@ -638,7 +638,7 @@ function jac_comp_right_structure!(
 )
     _rows = mpcc._i1
     _cols = mpcc._i2
-    jac_lin_structure!(mpcc.nlp, _rows, _cols) # get including complementarities
+    jac_structure!(mpcc.nlp, _rows, _cols) # get including complementarities
 
     @views begin
         rows[1:length(get_ind_j_comp_right_triplets(mpcc))] .=
