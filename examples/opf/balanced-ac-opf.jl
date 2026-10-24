@@ -191,8 +191,9 @@ function BalancedACOPFModel(
         )
     else
         length(x0) == 18 || throw(DimensionMismatch("expected 18 starting values"))
-        all(isfinite, x0) || throw(ArgumentError("starting values must be finite"))
         x0 = T.(x0)
+        all(isfinite, x0) ||
+            throw(ArgumentError("converted starting values must be finite"))
     end
     lvar = vcat(
         T[data.vmin, -data.angle_max, -data.source_limit, -data.source_limit, 0, data.qmin],

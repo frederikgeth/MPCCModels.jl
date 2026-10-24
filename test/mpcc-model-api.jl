@@ -24,6 +24,25 @@
         @test jac_comp_right_structure(mpcc) == ([1], [3])
         @test jac_comp_left(mpcc, x) ≈ T[1 0 0]
         @test jac_comp_right(mpcc, x) ≈ T[0 0 1]
+        linear = zeros(T, 1)
+        nonlinear = zeros(T, 1)
+        cons_lin!(mpcc, x, linear)
+        cons_nln!(mpcc, x, nonlinear)
+        @test linear ≈ cons(mpcc, x)[get_lin(mpcc)]
+        @test nonlinear ≈ cons(mpcc, x)[get_nln(mpcc)]
+        @test jac_lin(mpcc, x) ≈ jac(mpcc, x)[get_lin(mpcc), :]
+        @test jac_nln(mpcc, x) ≈ jac(mpcc, x)[get_nln(mpcc), :]
+        v = T[0.2, -0.4, 0.7]
+        w = T[0.3]
+        for (jv!, jtv!, J) in (
+            (jprod_lin!, jtprod_lin!, jac_lin(mpcc, x)),
+            (jprod_nln!, jtprod_nln!, jac_nln(mpcc, x)),
+        )
+            Jv = zeros(T, 1)
+            Jtw = zeros(T, 3)
+            @test jv!(mpcc, x, v, Jv) ≈ J * v
+            @test jtv!(mpcc, x, w, Jtw) ≈ J' * w
+        end
     end
 
     @testset "VarVar API" for T in [Float64, Float32]

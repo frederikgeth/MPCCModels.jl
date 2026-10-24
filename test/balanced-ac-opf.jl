@@ -79,6 +79,7 @@ end
         @test_throws ArgumentError BalancedACOPFModel(; case = :unknown)
         @test_throws DimensionMismatch BalancedACOPFModel(; x0 = zeros(17))
         @test_throws ArgumentError BalancedACOPFModel(; x0 = fill(NaN, 18))
+        @test_throws ArgumentError BalancedACOPFModel(Float32; x0 = fill(1e40, 18))
         data = balanced_ac_opf_case(:curtailment)
         x = balanced_ac_opf_reference(data)
         mpcc = BalancedACOPFModel(; x0 = x)
