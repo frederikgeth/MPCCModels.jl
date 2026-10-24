@@ -118,3 +118,83 @@ Selected-sector/local references establish numerical feasibility and measured
 activity, not full MPCC stationarity or a global optimum. Raw optimizers may
 reach different regions from the operating reference; retain both rather than
 claiming one canonical activity pattern.
+
+## Measured coverage and difficulty (2026-10-25)
+
+All **18 inputs** have independently checked feasible references, and all
+18 matched dispatchable NLP counterfactuals pass original checks. The two
+recorded cohorts contain **54 raw trials: 36 physical passes and 18 iteration-
+limit exits**, with no exceptions, unavailable starts or solved-status physical
+accuracy gaps. Feasibility verification remains independent of solver status.
+
+| Coverage policy | Physical passes / 500-iteration exits (four starts/settings) |
+| --- | --- |
+| Absorption service | 4 / 0 |
+| Injection service | 0 / 4 |
+| Early export backstop | 2 / 2 |
+| Early absorption backstop | 3 / 1 |
+| Middle absorption backstop | 4 / 0 |
+| Late absorption backstop | 4 / 0 |
+| Gentle / firm / steep watt caps | 4 / 0 each |
+
+The coverage cohort has 29 passes and seven exits. At verified operating or
+returned-iterate references it adds:
+
+- VV absorption plateau at five plants, plus an absorption endpoint in the
+  operating reference. The raw solutions also reach absorption saturation.
+- VV injection plateau at three plants under limited reactive-service
+  participation. All four raw injection-service trials reach 500 iterations
+  despite independently feasible references.
+- A strict VW lower plateau at one plant in the early export backstop reference,
+  with P below availability and the cap at .65S. Raw endpoints need not retain
+  that regime; the different reference modes are preserved explicitly.
+- Absorption-ramp fractions near **0.2, 0.5 and 0.8** across the staggered
+  backstops. The old application-point transfer and selected operating sector
+  can reach different fractions from the returned-iterate reference; the table
+  of all verified points retains those distinctions.
+- Strictly binding VW ramps with availability slack and fractions spanning
+  roughly **0.25–0.79**, including interior low/middle/high strata. These differ
+  from the availability crossovers dominating the first catalog.
+
+The portable dataset contains **39 verified references** across 18 cases,
+including five independently verified physical transfers. The remaining points
+are solver-derived selected-sector references. They are feasible operating/local
+reference points, not global or full-MPCC optimality certificates. Some separate
+reference attempts do not verify; those attempts remain in the full archives.
+
+| Placement | 6 units: passes / exits | 12 units | 24 units |
+| --- | --- | --- | --- |
+| Same six connection points | 0 / 2 | 0 / 2 | 0 / 2 |
+| Clustered distinct sites | 0 / 2 | 0 / 2 | 2 / 0 |
+| Dispersed distinct sites | 1 / 1 | 2 / 0 | 2 / 0 |
+
+The fleet cohort has seven passes and eleven exits. Within dispersed fleets, only the six-unit
+flat start fails; its reference start passes. All 6/12/24 same-site cases have
+verified constructed references with identical aggregate physical feasibility.
+Changing distinct-site count changes placement and capacity per connection, so
+the clustered recovery at 24 units does not establish a pure controller-count
+benefit. The cohorts shared the host with each other and validation work; wall
+times are observational, not a calibrated runtime ranking. All failures above
+are iteration limits rather than wall-time exits.
+
+The [portable expansion records](hard-cases/README.md#operating-coverage-and-fleet-records)
+retain case specifications, reference kinds, points, checksums, baselines,
+representative raw starts/results, the full 54-row census and measured fractional
+coverage. Missing/next coverage work is application-specific placement and
+operating transitions, matched VV-only/VW-only characterization and wider
+networks. IEEE 300 remains the next network import/validation milestone; reducing
+or diagnosing a solver failure is not a prerequisite.
+
+Validation: **2,648 expansion/model/archived-record assertions** pass on Julia
+1.10.12 and 1.12.6; existing 1,320 application and 578 transmission-model
+assertions pass on Julia 1.12.6. Documenter builds locally with external link
+checks disabled. Resume preserves all **540 raw, baseline and sector-reference
+files** byte for byte. The injection-service ratio_one/flat request replays to
+500 iterations with an identical returned vector and original residuals.
+
+Complete local archives, excluded from Git:
+
+- `search-results/ieee118-coverage-2026-10-25.tar.gz`, SHA-256
+  `8ca51806b0b0c83faa068126fcbc7c1be44f91fd2065e094863059e30817be37`.
+- `search-results/ieee118-fleets-2026-10-25.tar.gz`, SHA-256
+  `f98c1b13c75d4a210b95a50a6328adc8f99e49411f53fadb73823d6fecfcb164`.

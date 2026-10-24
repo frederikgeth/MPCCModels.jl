@@ -471,10 +471,10 @@ remain in the local ignored search directories.
 
 ### Next application-development priorities
 
-- [ ] Add physically specified operating/profile variants covering both VV outer
+- [x] Add physically specified operating/profile variants covering both VV outer
       plateaus, the VW lower plateau and ramp strata away from availability
       crossovers. Record unreachable or unachieved regimes without relabelling them.
-- [ ] Extend heterogeneous fleet count and placement studies on the application
+- [x] Extend heterogeneous fleet count and placement studies on the application
       inputs, independently varying installed capacity, population and geography.
 - [ ] Characterize the already available VV-only and VW-only matched variants;
       keep operating effects and measured difficulty separate.
@@ -511,12 +511,69 @@ Separate same-connection-point replicas (an exact aggregate-physics control) fro
 clustered/dispersed distinct-site fleets. More distinct sites intentionally change
 geography; they are not an isolated controller-count experiment.
 
-- [ ] Add policy/operating cards and reusable coverage-variant constructors.
-- [ ] Add fleet construction, deterministic site selection and source-point transfer.
-- [ ] Test policy/hardware matching, population invariants, source purity and sparse derivatives.
-- [ ] Run the nine coverage inputs with current/ratio_one and flat/reference starts.
-- [ ] Characterize the fleet matrix with ratio_one and flat/reference starts,
+- [x] Add policy/operating cards and reusable coverage-variant constructors.
+- [x] Add fleet construction, deterministic site selection and source-point transfer.
+- [x] Test policy/hardware matching, population invariants, source purity and sparse derivatives.
+- [x] Run the nine coverage inputs with current/ratio_one and flat/reference starts.
+- [x] Characterize the fleet matrix with ratio_one and flat/reference starts,
       preserving dispatchable baselines, feasible witnesses and every raw outcome.
-- [ ] Curate measured coverage, difficulty, reference points and remaining gaps;
+- [x] Curate measured coverage, difficulty, reference points and remaining gaps;
       update documentation and application priorities. IEEE 300 remains the next
       network expansion, independently of solver diagnosis.
+
+### Coverage and fleet expansion: measured completion
+
+The [extension guide](EXPANSIONS.md) defines nine additional operating-policy
+inputs and nine 6/12/24-unit fleet inputs, with the original application registry
+unchanged. Verified references now reach both VV outer plateaus, a strict VW
+lower plateau, VV absorption fractions near .2/.5/.8 and strict VW ramps across
+roughly .25–.79 with availability slack. All settings are explicit synthetic
+operating policies within original voltage bands; measured coverage is separate
+from targets and the reference points need not be full-MPCC/global optima.
+
+The coverage cohort has **29 physical passes and seven 500-iteration exits**
+across 36 raw current/ratio_one flat/reference trials. The injection-service
+input challenges both profiles from both starts despite feasible references.
+The fleet cohort has **seven physical passes and eleven iteration-limit exits**
+across 18 ratio_one flat/reference trials. All 18 dispatchable counterfactuals
+pass, all 18 inputs have checked feasible references, and the portable dataset
+retains 39 verified references, including five explicitly constructed transfers.
+
+Fleets preserve 900 MVA installed size, 765 MW availability and each original
+profile class's rating-weighted hardware/curve mixture. Same-site replicas give
+an exact aggregate-physics control; all 6/12/24 variants fail from both starts.
+Distinct-site sets are nested and topology-based. Clustered 6/12-unit inputs
+fail both starts while 24 units pass both; dispersed 12/24 pass both, with only
+the dispersed six-unit flat start failing. Population/geography are coupled for
+distinct-site growth, so these outcomes do not establish a pure count benefit.
+
+The [portable expansion records](hard-cases/README.md#operating-coverage-and-fleet-records)
+retain constructors/specs, input/source hashes, reference kinds/points, all 54 raw
+outcomes, 18 baselines and representative actual starts/results. Complete raw and
+reference attempts, including unverified reference solves, remain archived locally.
+
+Next application milestones:
+
+- [ ] Import/pin IEEE 300 and independently validate its canonical AC OPF,
+      then supply network-specific placements/ratings for the existing families.
+- [ ] Characterize matched VV-only/VW-only policies using the existing factories;
+      keep physical effects, measured activity and difficulty as separate outputs.
+- [ ] Add sequences of steady-state operating points varying load/availability
+      and reactive/export headroom, with measured transitions between curve parts.
+- [ ] Extend distinct-site fleet geography beyond topology rules when an explicit
+      electrical-sensitivity siting study is justified by the application.
+
+Validation: **2,648 expansion/model/archived-record assertions** pass on Julia
+1.10.12 and 1.12.6. Existing **1,320 application** and **578 transmission-model**
+assertions pass on Julia 1.12.6. Documenter builds locally with external link
+checking disabled; remote CI remains pending. Long search matrices are manual,
+while CI validates physical invariants and archived evidence without requiring
+future solver releases to retain the same failures.
+
+Resume preserves all **540 raw/baseline/sector-reference files** byte for byte.
+The injection-service ratio_one/flat failure replays at 500 iterations with
+identical returned point and original residuals. Complete local archives are
+`search-results/ieee118-coverage-2026-10-25.tar.gz` (SHA-256
+`8ca51806b0b0c83faa068126fcbc7c1be44f91fd2065e094863059e30817be37`)
+and `search-results/ieee118-fleets-2026-10-25.tar.gz` (SHA-256
+`f98c1b13c75d4a210b95a50a6328adc8f99e49411f53fadb73823d6fecfcb164`).

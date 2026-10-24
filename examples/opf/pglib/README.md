@@ -248,3 +248,11 @@ against matched dispatchable baselines, preserving raw failures and separately
 verified witnesses. Reports keep achieved physical coverage and solver
 difficulty separate from intended mechanisms. Minimizing or explaining a solver
 failure is not a prerequisite for growing these families or adding larger grids.
+
+The [coverage and fleet extension](EXPANSIONS.md) adds nine explicit operating
+policies and fixed-total 6/12/24-unit fleets. `application_policy_case` covers
+reactive-service saturation, staggered active-power backstops and strict export
+caps. `application_fleet_case` preserves the rating-weighted heterogeneous mixture
+while separating same-site replicas from clustered/dispersed distinct sites.
+`search-expansions.jl` retains all raw outcomes, dispatchable counterfactuals,
+constructed source points and independently checked operating/returned references.

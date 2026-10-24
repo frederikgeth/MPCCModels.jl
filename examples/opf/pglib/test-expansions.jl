@@ -193,3 +193,133 @@ end
         @test !any(r->r["classification"]=="unavailable_start", fleet_rows)
     end
 end
+
+@testset "Archived operating coverage and fleet challenges" begin
+    fixture=TOML.parsefile(joinpath(@__DIR__, "hard-cases", "ieee118-expansions.toml"))
+    bits(x) = bytes2hex(H.sha256(join(bitstring.(Float64.(x)), "\n")))
+    restore(d) =
+        d["kind"]=="coverage" ? (kind = :coverage, policy = Symbol(d["policy"])) :
+        (
+            kind = :fleet,
+            family = Symbol(d["family"]),
+            level = Symbol(d["level"]),
+            count = d["count"],
+            placement = Symbol(d["placement"]),
+        )
+    @test fixture["source_application_sha256"]==H._sha(H.EXPANSION_SOURCE)
+    @test fixture["source_file_sha256"]==H._sha(
+        joinpath(@__DIR__, "data", fixture["source_file"]),
+    )
+    @test length(fixture["cases"])==18
+    @test fixture["classifications"]==Dict("success"=>36, "solver_failure"=>18)
+    function check_record(data, r; tolerance = get(r, "tolerance", 1e-7))
+        @test bits(r["x"])==r["point_bits_sha256"]
+        model=T.TransmissionOPFModel(data)
+        metrics=H._metrics(model, data, r["x"], tolerance)
+        @test metrics["objective"]≈r["objective"] atol=1e-5
+        for (k, v) in r["residuals"]
+            @test metrics["residuals"][k]≈v atol=1e-9
+        end
+        if haskey(r, "start")
+            @test bits(r["start"])==r["start_bits_sha256"]
+        end
+        coverage=T.application_coverage(data, r["x"])
+        @test coverage["vv_regions"]==r["coverage"]["vv_regions"]
+        @test coverage["vw_regions"]==r["coverage"]["vw_regions"]
+        @test coverage["curtailed_mw"]≈r["coverage"]["curtailed_mw"] atol=1e-6
+        return metrics
+    end
+    for row in fixture["cases"]
+        spec=restore(row["spec"])
+        data=T.application_expansion_case(spec)
+        @test bytes2hex(H.sha256(H._toml(H._snapshot(data))))==row["input_snapshot_sha256"]
+        layout=T.transmission_layout(data)
+        @test (layout.nvar, layout.ncon, length(layout.r))==(
+            row["nvar"],
+            row["ncon"],
+            row["ncc"],
+        )
+        @test 1<=row["primary_reference"]<=length(row["references"])
+        for ref in row["references"]
+            @test check_record(data, ref; tolerance = 1e-7)["physically_feasible"]
+            if ref["kind"]=="physical_transfer"
+                @test ref["method"]=="physical_start_transfer_without_solver" ||
+                      ref["method"]=="physical_transfer_without_solver"
+                @test !haskey(ref, "solver_success")
+            end
+        end
+        baseline=T.application_expansion_case(spec; laws = :dispatchable)
+        @test check_record(baseline, row["counterfactual"])["physically_feasible"]
+    end
+    for r in fixture["trials"]
+        data=T.application_expansion_case(restore(r["spec"]))
+        @test check_record(data, r)["physically_feasible"]==r["physically_feasible"]
+    end
+    function policy_refs(policy)
+        row=only(filter(r->get(r["spec"], "policy", "")==string(policy), fixture["cases"]))
+        return T.application_policy_case(policy), row["references"]
+    end
+    data, refs=policy_refs(:absorption_service)
+    l=T.transmission_layout(data)
+    @test any(
+        any(
+            x[l.v[c.bus]]>last(c.vv.knots)+1e-6 && abs(x[l.q[i]]-last(c.vv.values))<1e-6 for
+            (i, c) in enumerate(data.controllers)
+        ) for x in [r["x"] for r in refs]
+    )
+    data, refs=policy_refs(:injection_service)
+    l=T.transmission_layout(data)
+    @test any(
+        any(
+            x[l.v[c.bus]]<first(c.vv.knots)-1e-6 && abs(x[l.q[i]]-first(c.vv.values))<1e-6
+            for (i, c) in enumerate(data.controllers)
+        ) for x in [r["x"] for r in refs]
+    )
+    data, refs=policy_refs(:early_export_backstop)
+    l=T.transmission_layout(data)
+    @test any(
+        any(
+            x[l.v[c.bus]]>last(c.vw.knots)+1e-6 &&
+                abs(x[l.p[i]]-last(c.vw.values))<1e-6 &&
+                c.p_available-x[l.p[i]]>0.1*c.smax for (i, c) in enumerate(data.controllers)
+        ) for x in [r["x"] for r in refs]
+    )
+    for (policy, target) in zip(
+        (
+            :early_absorption_backstop,
+            :middle_absorption_backstop,
+            :late_absorption_backstop,
+        ),
+        (0.2, 0.5, 0.8),
+    )
+        data, refs=policy_refs(policy)
+        l=T.transmission_layout(data)
+        @test any(
+            any(
+                abs((x[l.v[c.bus]]-c.vv.knots[3])/(c.vv.knots[4]-c.vv.knots[3])-target)<0.02
+                for c in data.controllers
+            ) for x in [r["x"] for r in refs]
+        )
+    end
+    # Strict VW ramp operation, with availability genuinely slack.
+    fractions=Float64[]
+    for policy in (:gentle_watt_cap, :firm_watt_cap, :steep_watt_cap)
+        data, refs=policy_refs(policy)
+        l=T.transmission_layout(data)
+        for ref in refs, (i, c) in enumerate(data.controllers)
+            x=ref["x"]
+            v=x[l.v[c.bus]]
+            if first(c.vw.knots)<v<last(c.vw.knots) &&
+               c.p_available-x[l.p[i]]>0.01*c.smax &&
+               abs(T.opf_volt_watt(v, c)-x[l.p[i]])<1e-5
+                push!(fractions, (v-first(c.vw.knots))/(last(c.vw.knots)-first(c.vw.knots)))
+            end
+        end
+    end
+    @test any(f->0.2<f<0.3, fractions)
+    @test any(f->0.45<f<0.6, fractions)
+    @test any(f->0.75<f<0.85, fractions)
+    @test length(
+        readlines(joinpath(@__DIR__, "hard-cases", "ieee118-expansions-sweep.tsv")),
+    )==55
+end

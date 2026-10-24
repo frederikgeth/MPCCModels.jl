@@ -148,3 +148,43 @@ local ignored `../search-results/ieee118-applications-2026-10-25/` and
 The [application guide](../APPLICATIONS.md) defines scope, parameters, intended
 versus observed effects, paired comparisons and remaining coverage gaps. Original
 PGLib attribution and license remain unchanged.
+
+## Operating coverage and fleet records
+
+`ieee118-expansions.toml` contains 18 case specifications, 39 verified reference
+points, 18 dispatchable NLP points and 18 representative raw trials from the
+coverage/fleet studies. `ieee118-expansions-sweep.tsv` retains all 54 raw outcomes;
+`ieee118-expansions-coverage.tsv` records every verified reference's regions and
+fractions. Compact per-point coverage is sufficient for comparison; complete
+controller margins, requests, points and solver outputs remain in the archives.
+
+Coverage cases rebuild with `application_policy_case(Symbol(spec["policy"]))`.
+Fleet cases rebuild with `application_fleet_case(Symbol(spec["family"]);
+level=Symbol(spec["level"]),count=spec["count"],placement=Symbol(spec["placement"]))`.
+Pass `laws=:dispatchable` for their matched counterfactuals. The original
+application receipt's hash identifies the operating-point source.
+
+Each case's `primary_reference` indexes its `references` list. A `solver_point`
+reference records an observed sector solve (or verified raw point); a
+`physical_transfer` records construction and original feasibility, with no
+solver-success claim. They preserve different feasible regimes and do not assert
+full-MPCC stationarity. Tests reconstruct inputs and independently check all
+stored points, hardware/mixture invariants and the newly reached curve regions.
+Historical failure statuses are preserved without requiring future solvers to
+repeat them.
+
+```julia
+receipt = TOML.parsefile("examples/opf/pglib/hard-cases/ieee118-expansions.toml")
+trial = only(filter(t -> t["case_key"] == "policy-injection_service-both" &&
+    t["start_label"] == "flat", receipt["trials"]))
+data = HardCaseSearch.TransmissionOPF.application_policy_case(:injection_service)
+run_trial(data, trial["start"], trial["profile"], "NEW_EXPANSION_REPLAY_DIRECTORY";
+    start_label=trial["start_label"])
+```
+
+Full local artifacts and sibling archives are under ignored
+`../search-results/ieee118-coverage-2026-10-25/` and
+`../search-results/ieee118-fleets-2026-10-25/`. The
+[extension guide](../EXPANSIONS.md) defines physical scope, policies, geography,
+reference construction and measured outcomes. PGLib attribution/license are
+retained; these are synthetic study overlays, not new official PGLib releases.

@@ -298,3 +298,14 @@ bound coverage. A feasible challenge case can enter the catalog even when CCOpt
 fails; failed witness searches remain unresolved. Application definitions,
 physical parameter tables and the measurement protocol are documented in
 `examples/opf/pglib/APPLICATIONS.md`.
+
+The application extension adds `application_policy_card`,
+`application_policy_case`, `application_fleet_case` and `application_fleet_start`.
+Nine synthetic policy variants target reactive saturation, active-power backstops
+and interior ramp coverage. Fixed-total 6/12/24-unit fleets preserve each original
+profile class's aggregate hardware/availability. Same-site proportional replicas
+provide an aggregate-physics control; clustered/dispersed distinct-site fleets
+intentionally vary geography. The optional `search-expansions.jl` runner records
+raw trials, matched dispatchable baselines and explicitly labelled physical
+transfers versus solver-derived references. Definitions, measured outcomes and
+scope are documented in `examples/opf/pglib/EXPANSIONS.md`.
