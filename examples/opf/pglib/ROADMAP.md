@@ -495,3 +495,28 @@ with identical returned vector and original residuals. Complete local archives:
 `fc6e7fc25db7b14d169756652b8fe2b2b3f9b323b16b305aad46953ddfea24ff`)
 and `search-results/ieee118-application-sensitivities-2026-10-25.tar.gz` (SHA-256
 `da22d3ed8d8e6456755296a552ebd0b36daae4bb268e71bdb223454681a0ace3`).
+
+## Coverage and fleet expansion milestone
+
+Implement nine additional IEEE 118 operating/policy inputs to address the
+application catalog's missing VV plateaus, VW lower plateau and ramp-position
+coverage. Profiles are explicit synthetic operating policies inside original bus
+voltage bands; target descriptions never fix voltages or select sectors. Verify
+what both raw points and reference witnesses actually achieve, retain missed
+coverage and failures, and do not label intended regimes as solved outcomes.
+
+Add 6/12/24-unit variants of the heterogeneous reactive-support application with
+constant aggregate hardware, availability and rating-weighted profile mixture.
+Separate same-connection-point replicas (an exact aggregate-physics control) from
+clustered/dispersed distinct-site fleets. More distinct sites intentionally change
+geography; they are not an isolated controller-count experiment.
+
+- [ ] Add policy/operating cards and reusable coverage-variant constructors.
+- [ ] Add fleet construction, deterministic site selection and source-point transfer.
+- [ ] Test policy/hardware matching, population invariants, source purity and sparse derivatives.
+- [ ] Run the nine coverage inputs with current/ratio_one and flat/reference starts.
+- [ ] Characterize the fleet matrix with ratio_one and flat/reference starts,
+      preserving dispatchable baselines, feasible witnesses and every raw outcome.
+- [ ] Curate measured coverage, difficulty, reference points and remaining gaps;
+      update documentation and application priorities. IEEE 300 remains the next
+      network expansion, independently of solver diagnosis.
