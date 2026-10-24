@@ -46,6 +46,18 @@ function transmission_case(
     for key in ("dcline", "storage", "switch")
         isempty(get(pm, key, Dict())) || throw(ArgumentError("unsupported $key"))
     end
+    return _transmission_data(
+        pm;
+        network,
+        controllers,
+        targets,
+        network_targets,
+        name,
+        provenance = (revision = PGLIB_REVISION, file = filename),
+    )
+end
+
+function _network_records(pm)
     records(key, status) =
         sort([v for v in values(pm[key]) if v[status] != 0]; by = v -> v["index"])
     raw_buses = [v for v in values(pm["bus"]) if v["bus_type"] != 4]
@@ -74,11 +86,17 @@ function transmission_case(
         b = buses[i]
         buses[i] = merge(b, (gs = b.gs + shunt["gs"], bs = b.bs + shunt["bs"]))
     end
+    all(b -> all(isfinite, values(b)) && 0 < b.vmin <= b.vmax, buses) ||
+        throw(ArgumentError("invalid bus bounds or coefficients"))
     branches = [_branch_record(b, ids) for b in records("branch", "br_status")]
     generators = map(records("gen", "gen_status")) do g
         g["model"] == 2 && length(g["cost"]) <= 3 ||
             throw(ArgumentError("only polynomial costs of degree ≤ 2 are supported"))
         c = [zeros(3-length(g["cost"])); g["cost"]]
+        all(isfinite, (g["pmin"], g["pmax"], g["qmin"], g["qmax"], c...)) &&
+        g["pmin"] <= g["pmax"] &&
+        g["qmin"] <= g["qmax"] ||
+            throw(ArgumentError("invalid generator bounds or costs"))
         return (
             id = g["index"],
             bus = ids[g["gen_bus"]],
@@ -93,6 +111,24 @@ function transmission_case(
     end
     refs = findall(b -> b["bus_type"] == 3, raw_buses)
     length(refs) == 1 || throw(ArgumentError("exactly one reference bus required"))
+    return (
+        buses = buses,
+        branches = branches,
+        generators = generators,
+        reference_bus = only(refs),
+    )
+end
+
+function _transmission_data(
+    pm;
+    network,
+    controllers,
+    targets,
+    network_targets,
+    name,
+    provenance,
+)
+    records = _network_records(pm)
     if isnothing(network_targets)
         network_targets =
             isempty(controllers) ? _network_targets(network, :canonical, :mixed) : []
@@ -100,22 +136,43 @@ function transmission_case(
     data = (
         name = name,
         network = network,
-        buses = buses,
-        branches = branches,
-        generators = generators,
-        reference_bus = only(refs),
+        buses = records.buses,
+        branches = records.branches,
+        generators = records.generators,
+        reference_bus = records.reference_bus,
         controllers = collect(controllers),
         targets = collect(targets),
         network_targets = collect(network_targets),
         pm = pm,
         base_mva = pm["baseMVA"],
-        provenance = (revision = PGLIB_REVISION, file = filename),
+        provenance = provenance,
     )
     _validate(data)
     return data
 end
 
 function _branch_record(b, ids)
+    all(
+        isfinite,
+        (
+            b["br_r"],
+            b["br_x"],
+            b["tap"],
+            b["shift"],
+            b["angmin"],
+            b["angmax"],
+            b["g_fr"],
+            b["b_fr"],
+            b["g_to"],
+            b["b_to"],
+        ),
+    ) &&
+    b["br_r"]^2+b["br_x"]^2 > 0 &&
+    b["tap"] > 0 &&
+    b["angmin"] <= b["angmax"] ||
+        throw(ArgumentError("invalid branch coefficients or angle bounds"))
+    rate = get(b, "rate_a", Inf)
+    rate > 0 && !isnan(rate) || throw(ArgumentError("invalid branch rating"))
     y = inv(complex(b["br_r"], b["br_x"]))
     tap = b["tap"] * cis(b["shift"])
     yff = (y + complex(b["g_fr"], b["b_fr"])) / abs2(tap)
@@ -133,7 +190,7 @@ function _branch_record(b, ids)
         btf = imag(ytf),
         gtt = real(ytt),
         btt = imag(ytt),
-        rate = get(b, "rate_a", Inf),
+        rate = rate,
         amin = b["angmin"],
         amax = b["angmax"],
     )
@@ -141,6 +198,9 @@ end
 
 function _validate(data)
     nb = length(data.buses)
+    original = _network_records(data.pm)
+    all(key -> getproperty(data, key) == getproperty(original, key), keys(original)) ||
+        throw(ArgumentError("network records disagree with pm; use transmission_overlay"))
     seen = Set([data.reference_bus])
     for _ in 1:nb
         for b in data.branches
@@ -185,33 +245,26 @@ function _validate(data)
                 isnothing(c.vw) &&
                 throw(ArgumentError("target requires disabled VW limit"))
         end
-        for (curve, region) in ((c.vv, t.vv_region), (c.vw, t.vw_region))
-            if isnothing(curve)
-                region == :disabled || throw(ArgumentError("target requires disabled law"))
-                continue
-            end
-            k = curve.knots
-            intervals = Dict(:below => (-Inf, first(k)), :above => (last(k), Inf))
-            for i in eachindex(k)
-                intervals[Symbol("knot_", i)] = (k[i], k[i])
-                i < length(k) && (intervals[Symbol("segment_", i)] = (k[i], k[i+1]))
-            end
-            haskey(intervals, region) || throw(ArgumentError("unknown curve region"))
-            lo, hi = intervals[region]
-            reachable =
-                startswith(string(region), "knot_") ? b.vmin <= lo <= b.vmax :
-                max(lo, b.vmin) < min(hi, b.vmax)
-            reachable ||
-                throw(ArgumentError("requested region is outside bus voltage bounds"))
-        end
-        for key in (:vv_position, :vw_position)
+        # VV and VW share one voltage; intersect their region/fraction windows.
+        lo, hi = b.vmin, b.vmax
+        lo_open, hi_open = false, false
+        for (curve, region, key) in
+            ((c.vv, t.vv_region, :vv_position), (c.vw, t.vw_region, :vw_position))
             window = hasproperty(t, key) ? getproperty(t, key) : nothing
-            isnothing(window) && continue
-            length(window) == 2 &&
-            all(isfinite, window) &&
-            0 <= window[1] <= window[2] <= 1 ||
-                throw(ArgumentError("invalid finite-segment target window"))
+            a, z, a_open, z_open = _target_voltage_interval(curve, region, window)
+            if a > lo
+                lo, lo_open = a, a_open
+            elseif a == lo
+                lo_open |= a_open
+            end
+            if z < hi
+                hi, hi_open = z, z_open
+            elseif z == hi
+                hi_open |= z_open
+            end
         end
+        (lo < hi || lo == hi && !lo_open && !hi_open) ||
+            throw(ArgumentError("VV/VW targets have no common voltage within bus bounds"))
     end
     for t in data.network_targets
         records =
@@ -228,6 +281,33 @@ function _validate(data)
             throw(ArgumentError("invalid network target"))
     end
     return nothing
+end
+
+function _target_voltage_interval(curve, region, window)
+    if isnothing(curve)
+        region == :disabled && isnothing(window) ||
+            throw(ArgumentError("invalid disabled-law target"))
+        return -Inf, Inf, false, false
+    end
+    k = curve.knots
+    regions =
+        Dict(:below => (-Inf, first(k), true, true), :above => (last(k), Inf, true, true))
+    for i in eachindex(k)
+        regions[Symbol("knot_", i)] = (k[i], k[i], false, false)
+        i < length(k) && (regions[Symbol("segment_", i)] = (k[i], k[i+1], true, true))
+    end
+    haskey(regions, region) || throw(ArgumentError("unknown curve region"))
+    a, b, ao, bo = regions[region]
+    if !isnothing(window)
+        startswith(string(region), "segment_") ||
+            throw(ArgumentError("fraction window requires a finite segment"))
+        length(window) == 2 && all(isfinite, window) && 0 <= window[1] <= window[2] <= 1 ||
+            throw(ArgumentError("invalid finite-segment target window"))
+        width = b-a
+        a, b = a+window[1]*width, a+window[2]*width
+        ao, bo = window[1] == 0, window[2] == 1
+    end
+    return a, b, ao, bo
 end
 
 """Variable/row maps, including one nonnegative hinge pair per enabled knot."""
@@ -449,5 +529,6 @@ end
 
 include("diagnostics.jl")
 include("cases.jl")
+include("studies.jl")
 
 end

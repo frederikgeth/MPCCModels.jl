@@ -12,6 +12,66 @@ function fd_jacobian(f, x; step = 1e-6)
     end...)
 end
 
+@testset "Authoritative network overlays and joint curve targets" begin
+    d = pglib_control_case(:ieee14)
+    original = deepcopy(d.pm)
+    changed = transmission_overlay(
+        d;
+        load_scale = 1.1,
+        buses = [(id = 1, vmax = 1.07)],
+        generators = [(id = 2, qmax = 0.31)],
+        branches = [(id = 1, rate = 1.2, amax = 0.1)],
+    )
+    @test d.pm == original
+    @test changed.pm !== d.pm
+    @test isempty(changed.targets) && isempty(changed.network_targets)
+    @test changed.buses[1].vmax == 1.07
+    @test changed.generators[2].qmax == 0.31
+    @test changed.branches[1].rate == 1.2
+    @test changed.branches[1].amax == 0.1
+    @test sum(b.pd for b in changed.buses) ≈ 1.1*sum(b.pd for b in d.buses)
+    m = TransmissionOPFModel(changed)
+    l = transmission_layout(changed)
+    x = get_x0(m)
+    balance, _ = TransmissionOPF._physical_balance(changed, x, l)
+    @test cons(m, x)[l.balance_p] ≈ real.(balance) atol = 1e-12
+    @test cons(m, x)[l.balance_q] ≈ imag.(balance) atol = 1e-12
+    stale = copy(d.buses)
+    stale[2] = merge(stale[2], (pd = stale[2].pd+0.1,))
+    @test_throws ArgumentError TransmissionOPFModel(merge(d, (buses = stale,)))
+    @test_throws ArgumentError transmission_overlay(d; buses = [(id = 1, vmin = 2.0)])
+    @test_throws ArgumentError transmission_overlay(d; branches = [(id = 1, rate = -1.0)])
+    @test_throws ArgumentError transmission_overlay(d; generators = [(id = 2, qmin = 1.0)])
+    @test_throws ArgumentError transmission_overlay(d; buses = [(id = 1000, vmax = 1.1)])
+    @test_throws ArgumentError transmission_overlay(d; load_scale = Inf)
+    @test_throws ArgumentError transmission_overlay(
+        d;
+        branches = [(id = 1, rate = 1.0), (id = 1, rate = 2.0)],
+    )
+    # Both requested regions intersect the bus box separately, but VV asks for
+    # v<=1.01 and VW for v>1.01015. Their shared-voltage intersection is empty.
+    targets = copy(d.targets)
+    targets[1] = merge(targets[1], (vv_region = :segment_2, vv_position = nothing))
+    @test_throws ArgumentError TransmissionOPFModel(merge(d, (targets = targets,)))
+    # Incompatible finite-fraction windows on otherwise identical ramp domains.
+    targets[1] =
+        merge(d.targets[1], (vv_position = (0.1, 0.15), vw_position = (0.01, 0.05)))
+    @test_throws ArgumentError TransmissionOPFModel(merge(d, (targets = targets,)))
+    no_vv = pglib_control_case(:ieee14; laws = :vw)
+    targets = copy(no_vv.targets)
+    targets[1] = merge(targets[1], (vv_position = (0.1, 0.2),))
+    @test_throws ArgumentError TransmissionOPFModel(merge(no_vv, (targets = targets,)))
+    @test_throws ArgumentError controller_population_case(d; copies = 0)
+    @test_throws ArgumentError controller_placement_case(:ieee14; placement = :missing)
+    @test_throws ArgumentError controller_placement_case(:ieee14; penetration = 0.0)
+    # Quadratic costs must scale with population to preserve aggregate cost.
+    parent = merge(d.controllers[1], (quadratic_cost = 2.0,))
+    child = TransmissionOPF._scale_controller(parent, 0.25)
+    p = 0.1
+    @test 4*(child.cost*p/4+child.quadratic_cost*(p/4)^2/2) ≈
+          parent.cost*p+parent.quadratic_cost*p^2/2
+end
+
 @testset "PGLib import and transmission physics" begin
     for (network, nb, ne, ng) in (
         (:ieee14, 14, 20, 5),
@@ -63,11 +123,15 @@ end
 @testset "Transmission hinges, variants and derivatives" begin
     for laws in (:dispatchable, :vv, :vw, :both)
         d = pglib_control_case(:ieee14; laws = laws)
-        generators = copy(d.generators)
-        generators[1] = merge(generators[1], (c2 = 3.0,))
+        d = transmission_overlay(
+            d;
+            generators = [(id = 1, c2 = 3.0)],
+            targets = d.targets,
+            network_targets = d.network_targets,
+        )
         controllers = copy(d.controllers)
         controllers[1] = merge(controllers[1], (cost = 0.7, quadratic_cost = 0.2))
-        d = merge(d, (generators = generators, controllers = controllers))
+        d = merge(d, (controllers = controllers,))
         l = transmission_layout(d)
         m = TransmissionOPFModel(d)
         @test (m isa AbstractMPCCModel) == (laws != :dispatchable)

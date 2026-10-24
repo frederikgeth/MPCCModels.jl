@@ -153,6 +153,11 @@ function transmission_coverage(
             vv = vv,
             vw = vw,
             margins = margins,
+            normalized_margins = map(m -> m/c.smax, margins),
+            knot_distance = (
+                vv = isnothing(c.vv) ? Inf : minimum(abs.(v .- c.vv.knots)),
+                vw = isnothing(c.vw) ? Inf : minimum(abs.(v .- c.vw.knots)),
+            ),
             misses = misses,
         )
     end
@@ -169,6 +174,8 @@ function transmission_coverage(
                 p_upper = g.pmax-x[l.pg[i]],
                 q_lower = x[l.qg[i]]-g.qmin,
                 q_upper = g.qmax-x[l.qg[i]],
+                fixed_p = g.pmin == g.pmax,
+                fixed_q = g.qmin == g.qmax,
             ) for (i, g) in enumerate(data.generators)
         ],
         branches = [
