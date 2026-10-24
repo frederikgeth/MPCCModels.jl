@@ -1,115 +1,166 @@
 # Balanced AC OPF with volt-var and volt-watt controls
 
-This example provides a two-bus, balanced AC OPF as a vertical-form `MPCCModel`.
-It uses `ADNLPModels`, as do the package's existing small test models. It adds
-no dependencies to the package runtime. The example environment includes CCOpt
-for the optional solve script.
+This example builds an ordinary vertical-form `MPCCModel` from explicit bus,
+series-branch, source, and controller records. It supports several controllers
+on one bus or on different buses, arbitrary continuous piecewise-linear curves,
+and independently enabled VV/VW laws. `ADNLPModels` supplies the smooth NLP.
+Neither the examples nor CCOpt add dependencies to the package runtime.
 
-The exact hinge formulation is ported from
+The nonnegative hinge formulation is ported from
 [BMOPFTools.jl PR #383](https://github.com/frederikgeth/BMOPFTools.jl/pull/383),
-specifically `_complementarity_curve_expr!` at commit
+specifically `_complementarity_curve_expr!` at
 [`faf3d455381e15b651808c489237c0dd921d7cf7`](https://github.com/frederikgeth/BMOPFTools.jl/blob/faf3d455381e15b651808c489237c0dd921d7cf7/ext/BMOPFOpfExt/ibr.jl#L357).
 
 ## Run
 
-From the repository root, prepare the example environment against this checkout:
+Prepare the example environment from the repository root:
 
 ```sh
 julia --project=examples/opf -e 'using Pkg; Pkg.develop(path=pwd()); Pkg.instantiate()'
 julia --project=examples/opf examples/opf/solve.jl curtailment
+julia --project=examples/opf examples/opf/solve.jl fork_mixed_reactive
 julia --project=examples/opf examples/opf/solve.jl all
+julia --project=examples/opf examples/opf/test-solves.jl
 ```
 
-The script uses CCOpt's relaxation solver with nonnegative hinge bounds kept
-unrelaxed. It reports the solver status, original objective, voltage, inverter
-P/Q, and residuals of the original model and direct control curves. It accepts
-successful or acceptable-level termination and fails on other statuses or if
-any residual exceeds `1e-5` per unit. Acceptable-level status remains visible
-in the report. The tight
-solver and relaxation tolerances are example settings, not universal OPF
-recommendations. A small hinge product can still permit a larger control error
-at a breakpoint, which is why the script checks the physical curves directly.
+The optional integration test solves all 37 named cases. It requires successful
+or acceptable-level solver termination, all original feasibility residuals below
+`1e-5` per unit, and **achieved** coverage of every controller's intended regime,
+voltage window, tight limits, and slack competitors. It does not establish
+global optimality. The same gate runs in a separate CI job; ordinary package
+tests remain solver-independent.
 
-To inspect a case without solving:
+`solve.jl` prints the original objective, solver status, residuals, and individual
+controller reports. Its tight tolerances and small per-unit initialization bound
+push are example settings, not general recommendations. Nonnegative hinge bounds
+are kept unrelaxed. Direct physical curve checks remain necessary at knots,
+where a small product can still allow larger errors in its individual factors.
+
+If a successful homotopy point misses these checks, the runner conditionally
+polishes a branch NLP using `CCOpt.BranchNLP`. The branch is chosen from the
+returned hinge values, never from a reference or target. Both solver statuses,
+the original homotopy residuals/coverage, and the final checks are preserved.
+This is a solve on a selected smooth sector, not a full MPCC stationarity or
+global-optimality certificate. `solve_opf_case(name; polish = false)` disables
+this refinement while retaining the same acceptance gates.
+
+## Inspect the model
 
 ```julia
 using MPCCModels, NLPModels
 include("examples/opf/balanced-ac-opf.jl")
 using .BalancedACOPF
 
-data = balanced_ac_opf_case(:curtailment)
-mpcc = BalancedACOPFModel(; case = data.name)
+data = balanced_ac_opf_case(:chain_remote_curtailment)
+layout = opf_layout(data)
+mpcc = BalancedACOPFModel(data)
 x = balanced_ac_opf_reference(data)
-@show get_nvar(mpcc), get_ncon(mpcc), get_ncc(mpcc) # (18, 15, 6)
-@show x[1], x[5], x[6]                           # approximately (1.09, 0.68, -0.3)
+@show get_nvar(mpcc), get_ncon(mpcc), get_ncc(mpcc) # (34, 28, 12)
+@show x[layout.p], x[layout.q]                     # approximately [0.8, 0.68], [0, -0.3]
 @show opf_residuals(mpcc, x, data)
+@show opf_coverage(data, x).targets_met             # true
 ```
 
-`BalancedACOPFModel(Float32; case = :deadband)` is also supported.
-`x0` accepts a custom starting vector; by default the constructor uses a flat
-voltage profile rather than the feasible reference.
+The convenience constructor `BalancedACOPFModel(Float32; case = :deadband)`
+is retained. The original twelve two-bus cases still have 18 variables,
+15 constraints, six pairs, and their original variable/constraint ordering.
+The default is a flat voltage start; `x0` supplies another start. Values are
+checked for finiteness **after** conversion to the model's numeric type.
 
-## Model and cases
+## Building blocks and data contract
 
-The source voltage magnitude and angle are fixed. The other bus has a constant
-PQ load and one inverter. Power balance uses the full AC equations through a
-series impedance `0.02 + 0.08im` per unit. The objective minimizes source active
-injection; negative injection represents export. Both ends of the branch have
-apparent-power limits, and the inverter has a capability circle.
+- `opf_curve(knots, values)` validates an ordered, finite continuous curve with
+  constant extrapolation. One hinge is retained per knot, including zero slope
+  changes, so indices depend on structure rather than coefficient values.
+- `opf_bus(T; pload, qload, vmin, vmax, angle_max)` defines a bus. Positive load
+  consumes power; negative Q load is capacitive. The shipped fixtures have
+  nonnegative P and Q loads.
+- `opf_branch(from, to, r, x, T; rate_from, rate_to)` defines a series branch
+  with separate apparent-power limits at its ends. Parallel branches and meshes
+  are supported; shunts, taps and phase shifts are absent.
+- `opf_controller(id, bus, T; vv, vw, p_available, smax, qmin, qmax, cost,
+  quadratic_cost)` defines a device. Either curve can be `nothing`. A device
+  without VV has bounded free Q; one without VW has only its other P limits.
+- `opf_layout(data)` validates the network and computes all indices. Source
+  voltage and angle have index zero because they are fixed. Use these maps in
+  new cases instead of hard-coded slices.
 
-Volt-var **sets Q**. Volt-watt **caps P**, together with the separate available
-power bound. There is no additional capability-dependent clipping, active-power
-priority, or controller dynamics. All data are synthetic. The wide voltage band
-is chosen to exercise the control regimes; it is not a grid-code prescription.
+A data record contains `name`, `buses`, `branches`, `controllers`, and `source`.
+Bus numbers index `buses`; controller IDs must be unique. Source fields are
+`bus`, `voltage`, `pmin`, `pmax`, `qmin`, `qmax`, and `cost`. Its positive fixed
+voltage and zero angle must satisfy its bus bounds. The network must be
+connected and at least one control law enabled. Malformed data are rejected.
 
-| Case | Reference voltage | Inverter P | Inverter Q | Regime |
-| --- | ---: | ---: | ---: | --- |
-| `low_voltage_saturation` | 0.92 | 0.8 | 0.3 | Saturated reactive injection |
-| `reactive_injection` | 0.96 | 0.8 | 0.15 | Lower volt-var ramp |
-| `deadband` | 1.00 | 0.8 | 0 | Reactive deadband |
-| `reactive_absorption` | 1.04 | 0.8 | -0.15 | Upper volt-var ramp |
-| `curtailment` | 1.09 | 0.68 | -0.3 | Binding volt-watt ramp |
-| `high_voltage_saturation` | 1.14 | 0.2 | -0.3 | Both lower power plateaus |
+Optional `reference` fields are `voltage`/`angle` vectors per bus and `p`/`q`
+vectors per controller. Source P/Q are reconstructed from balance. Optional
+`targets` contain one record per controller ID with `vv_region`, `vw_region`,
+`voltage_window`, `tight`, and `slack`. Missing targets yield
+`targets_met = missing`, rather than certifying coverage vacuously.
 
-Six more cases sit exactly on the curve breakpoints: `vv_lower_knee` (0.94),
-`vv_deadband_lower` (0.98), `vv_deadband_upper` (1.02), `vv_upper_knee` (1.06),
-`vw_upper_knee` (1.07), and `vw_lower_knee` (1.12). The volt-watt names refer to
-the upper and lower **power** plateaus. At a breakpoint the corresponding hinge
-is biactive: both its nonnegative members are zero.
+All powers and curve outputs use a common three-phase system per-unit base;
+voltage uses the corresponding positive-sequence base, and angles are radians.
+Convert device-rating fractions before building curves. Treat data as immutable
+after construction and rebuild after edits. Changing physical data invalidates
+the old reference and coverage assumptions.
 
-The source voltage is constructed separately for each case to admit the listed
-feasible reference. Voltage is still a decision variable in the OPF. These
-references establish case coverage and feasibility, not global optimality.
+The objective is `source.cost * pg + sum(c.cost*p[c] + c.quadratic_cost*p[c]^2/2)`.
+This allows future cases to make local production costly or distinguish
+otherwise symmetric dispatch allocations.
 
-## Variable and constraint ordering
+## Physical controls
 
-The variables are `[v, theta, pg, qg, p, q, r[1:6]..., s[1:6]...]`.
-Angles are in radians; the other quantities are in per unit on a common
-three-phase power base and its corresponding voltage base.
-The complementarity index vectors are `7:12` and `13:18`.
+VV **sets Q**; VW **caps P**, alongside availability and the capability circle.
+Default VV points are `(0.94, 0.3)`, `(0.98, 0)`, `(1.02, 0)`, `(1.06, -0.3)`.
+Default VW points are `(1.07, 1.0)`, `(1.12, 0.2)`. The default hardware Q box
+is `[-0.4, 0.4]`, separate from the `[-0.3, 0.3]` curve plateaus. This removes
+the original duplicate plateau bounds without changing the exact controlled
+feasible set. There is no implicit clipping, dynamics, or priority switching.
 
-| Constraint rows | Meaning |
-| --- | --- |
-| 1–6 | Linear hinge definitions `r[k] - s[k] - v = -knot[k]` |
-| 7 | Linear link from the first four hinges to reactive power |
-| 8 | Linear active-power cap from the final two hinges |
-| 9–12 | AC active/reactive balance at the source and inverter buses |
-| 13 | Inverter apparent-power limit |
-| 14–15 | Branch apparent-power limits at both ends |
+Every knot uses `r - s - v = -knot`, `0 <= r ⟂ s >= 0`. Changes in segment
+slopes give the coefficients in `baseline + sum(weight*r)`. The underlying NLP
+has linear hinge/control links and smooth nonlinear AC balances and equipment
+limits. It contains neither nonsmooth curve evaluations nor product equalities.
 
-The underlying NLP has no nonsmooth control evaluations or complementarity
-product equalities. `MPCCModel` receives the six pairs separately.
+## Coverage matrix implemented so far
 
-## Validation
+| Group | Count | Coverage |
+| --- | ---: | --- |
+| Original interiors and exact knots | 12 | Five VV regions, three VW regions, all six knots |
+| Missing joint regimes/crossover | 3 | `saturated_var_flat_watt`, `early_watt_ramp`, `availability_watt_crossover` |
+| Additional ramp positions | 7 | VV injection/absorption at 20/80%; VW at 20/50/80% |
+| Knot neighbors | 12 | Every knot minus/plus `1e-4` per-unit voltage |
+| Multiple-controller studies | 3 | Fork, chain, and colocated controllers |
 
-Run the package tests with `julia --project -e 'using Pkg; Pkg.test()'`.
-The OPF tests cover Float32/Float64 reference feasibility, complex-phasor power
-balance, losses, each control regime, both sides of every breakpoint,
-nonnegativity, biactivity, direct curve errors, violated equipment limits, and
-finite-difference checks of the gradient, Jacobian, and Lagrangian Hessian.
-They also construct a feasible dispatch strictly below the volt-watt cap.
-Core tests do not require CCOpt; `solve.jl all` is a separate integration check.
+Availability 0.8 crosses the default VW cap at voltage 1.0825. Thus the early
+VW ramp is distinct: the descending curve need not determine P.
 
-See [ROADMAP.md](ROADMAP.md) for contribution progress and follow-up scope.
-The [case-design matrix](CASE_DESIGN.md) reviews current coverage and plans
-additional active constraints, curve positions, and multiple-controller studies.
+| Multiple-controller case | Reference voltages | Reference P/Q and target |
+| --- | --- | --- |
+| `fork_mixed_reactive` | 0.96, 1.04 | P = 0.8 each; Q = +0.15/-0.15 on opposite VV ramps |
+| `chain_remote_curtailment` | 1.00, 1.09 | Near: P = 0.8, Q = 0; remote: P = 0.68, Q = -0.3 with VW binding |
+| `colocated_controllers` | Shared 1.04 | P = 0.3/0.8 and Q = -0.15 each, both availability-limited |
+
+All fixtures are synthetic. The two-bus source voltage is calibrated to its
+target. Multiple-controller loads are calibrated jointly from complex network
+injections under one common source. Witnesses establish feasibility; the
+integration gate independently checks what the solver actually achieves.
+
+`opf_coverage` reports `below`, `segment_1`, ..., `above`, or `knot_1`, ... for
+each law, with fractional positions on finite segments. Its defaults are a
+`1e-6` voltage neighborhood for knots, `1e-5` for tight power limits, and `1e-4`
+for demonstrably slack competitors. Branch margins are apparent-power
+magnitudes, not squared slacks. Tight Q boxes are geometric observations,
+not evidence of independent capability competition.
+
+## Tests and next cases
+
+`julia --project -e 'using Pkg; Pkg.test()'` checks Float32/Float64 references,
+independent phasor physics, losses, generic curves, disabled laws, source-bus
+controllers, permutation/relabeling, malformed inputs, and finite differences
+of the gradient, Jacobian and Lagrangian Hessian. Split NLP evaluations are
+checked against full ones. Coverage tests reject feasible missed-target points.
+
+The [roadmap](ROADMAP.md) and [case-design matrix](CASE_DESIGN.md) track remaining
+equipment-limited cases, heterogeneous profiles, coactive limits, and larger
+studies. The shipped dispatches are availability- or VW-limited; isolated
+binding capability, thermal, voltage and source-limit studies remain planned.

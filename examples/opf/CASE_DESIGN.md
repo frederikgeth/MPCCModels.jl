@@ -1,11 +1,14 @@
 # Review and matrix for balanced AC OPF cases
 
 Review baseline: `116f650` on `codex/opf-volt-var-watt`, 24 October 2026.
-This note records the current implementation review and a proposed expansion.
-All proposed cases and interfaces below are design targets, not implemented
-models or verified benchmark results.
+This note retains the baseline review and tracks the resulting expansion.
+The input/split-API fixes, data-driven constructor, computed layout, actual
+coverage checks, missing single-controller regimes, ramp strata, knot neighbors,
+and M1/M2/M5 studies are now implemented. There are 37 named cases.
+Equipment-limited and remaining M cases are still design targets. Current
+validation results are recorded in [ROADMAP.md](ROADMAP.md).
 
-## Correctness and package consistency
+## Historical baseline review: correctness and package consistency
 
 The branch uses the package's existing design: an `ADNLPModel` supplies the
 smooth NLP and `MPCCModel(nlp, ind_vcc1, ind_vcc2)` supplies variable-variable
@@ -20,7 +23,7 @@ equality. Independent complex-phasor and finite-difference tests pass.
 The review reran all 802 package assertions on Julia 1.12.6 and all twelve
 CCOpt solves; every solve returned `SOLVE_SUCCEEDED`.
 
-### Actionable correctness and compatibility findings
+### Baseline findings (now fixed)
 
 1. **Validate starting values after conversion.** `BalancedACOPFModel` checks
    `isfinite` before `T.(x0)`. For example,
@@ -44,9 +47,9 @@ CCOpt solves; every solve returned `SOLVE_SUCCEEDED`.
 
 ### Coverage limitations
 
-The current model constructor rebuilds fixed data from a case name and uses
-fixed variable ranges `7:12` and `13:18`. This is suitable for the tutorial but
-does not yet expose reusable network/controller data or multiple controllers.
+The baseline constructor rebuilt fixed data from a case name and used fixed
+variable ranges `7:12` and `13:18`. The expansion now exposes reusable records,
+computed maps, and multiple controllers while preserving the original layout.
 
 The capability limit is mathematically unreachable, not merely slack in the
 observed solutions: `p <= 0.8` and `abs(q) <= 0.3` imply
@@ -56,12 +59,13 @@ Since every source voltage is below 1.18 and `v >= 0.88`, the sending-end power
 is below `1.18 / 0.88 * sqrt(0.32) < 0.76`, also below its rating and the source
 P/Q box bounds. New data are needed to activate these limits.
 
-The reactive bounds equal the volt-var plateau outputs. A tight reactive bound
+The baseline reactive bounds equaled the volt-var plateau outputs. A tight reactive bound
 on a plateau is therefore implied by the control law; it is not evidence of
 independent capability competition. Keep curve saturation and hardware limits
-as distinct coverage labels.
+as distinct coverage labels. The generalized defaults now use wider hardware
+Q bounds, removing this redundancy from the shipped cases.
 
-## Current observed coverage
+## Historical baseline audit: twelve observed solutions
 
 Audit configuration: Julia 1.12.6, CCOpt 0.1.0, MadNLP 0.10.1, the settings in
 `solve.jl`, default flat starts. Voltage classification tolerance was `1e-6`;
@@ -130,10 +134,10 @@ interior compatibility matrix is:
 | Injection ramp, 0.94 < v < 0.98 | Verified | Incompatible | Incompatible |
 | Deadband, 0.98 < v < 1.02 | Verified | Incompatible | Incompatible |
 | Absorption ramp, 1.02 < v < 1.06 | Verified | Incompatible | Incompatible |
-| Absorption plateau, v > 1.06 | **Missing interior** | Verified, VW tight | Verified |
+| Absorption plateau, v > 1.06 | Added: `saturated_var_flat_watt` | Verified, VW tight | Verified |
 
-The missing joint interior is `1.06 < v < 1.07`; target `v = 1.065`.
-The endpoint cases do not cover this interior.
+The joint interior `1.06 < v < 1.07`, absent from the baseline, is now covered
+at `v = 1.065`. Endpoint cases alone do not cover it.
 
 Also split the descending VW ramp by the *binding power limit*. With
 availability 0.8, the cap crosses availability at `v = 1.0825`:
@@ -244,8 +248,11 @@ economic role for the lower voltage bound.
 | M7 | Several devices at deliberate knot targets | Two simultaneous biactive pairs, remaining devices interior | Boundary degeneracy and per-device diagnostics |
 | M8 | Three devices: VV only, VW only, both | Distinct enabled control blocks | Pair counts, offsets, and result attribution |
 
-All M rows are planned. Begin with M1, M2, and M5; use M3/M6 once isolated
-equipment limits are verified. Add M4/M7/M8 as targeted interaction/API tests.
+M1 (`fork_mixed_reactive`), M2 (`chain_remote_curtailment`) and M5
+(`colocated_controllers`) are implemented. Other M rows remain planned.
+Use M3/M6 once isolated equipment limits are verified; add M4/M7/M8 as targeted
+interaction/API studies. Disabled laws and heterogeneous knot counts already
+have solver-independent construction and physics tests.
 
 Identical colocated controllers must occupy the same curve region. Different
 operating regions at the same bus require different profiles or monitored
@@ -265,9 +272,10 @@ witness, not evidence that an OPF solution chooses that witness or regime.
 ## Reuse the existing building blocks
 
 Keep all power-system construction in the example module and continue returning
-an ordinary `MPCCModel`. A proposed data-driven constructor is
-`BalancedACOPFModel(data; x0 = nothing)`; retain the current named-case/type
-constructor as a convenience wrapper so the tutorial remains reproducible.
+an ordinary `MPCCModel`. The data-driven constructor
+`BalancedACOPFModel(data; x0 = nothing)` and the named-case/type convenience
+wrapper are implemented. The example README documents the record schema and
+the distinction between optional witnesses and coverage targets.
 
 Represent branches, loads, sources, and controllers as small explicit records.
 Each controller has its own bus, enabled laws, breakpoints, curve outputs,
@@ -333,15 +341,15 @@ feasibility and coverage alone is not an optimality certificate.
 
 ## Implementation sequence
 
-1. Repair converted-start validation and add a regression. Track the inherited
+1. **Done:** repair converted-start validation and add a regression. Track the inherited
    split-API failures with focused tests and their own prerequisite fix.
-2. Add target/observed coverage records to the twelve existing cases and runner.
-3. Complete the missing single-controller interiors and availability crossover;
+2. **Done:** add target/observed coverage records to the named cases and runner.
+3. **Done:** complete the missing single-controller interiors and availability crossover;
    add ramp-position strata and solved breakpoint neighbors.
-4. Introduce explicit network/controller data and computed index maps while
+4. **Done:** introduce explicit network/controller data and computed index maps while
    preserving the existing twelve named examples.
 5. Add isolated capability, thermal, voltage, and source-bound cases with
    sensitivity checks that establish their role in dispatch.
-6. Build M1/M2/M5, then the mixed-limit and meshed multiple-controller studies.
+6. **M1/M2/M5 done:** next build the mixed-limit and meshed multiple-controller studies.
 7. Audit compatible coverage cells, add selected coactive/boundary stress cases,
    and publish only observed coverage, with infeasible/unverified cells labeled.

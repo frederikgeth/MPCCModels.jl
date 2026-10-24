@@ -1,172 +1,200 @@
 # Balanced AC OPF with inverter controls
 
-The example in `examples/opf/balanced-ac-opf.jl` constructs a small balanced AC
-optimal power flow problem with exact volt-var and volt-watt controls. It returns
-the existing [`MPCCModel`](@ref), using `ADNLPModels` for the underlying NLP.
-The example is separate from the package's runtime API.
+The module in `examples/opf/balanced-ac-opf.jl` returns an ordinary
+[`MPCCModel`](@ref), with `ADNLPModels` supplying the smooth NLP. It supports
+connected balanced networks and multiple VV/VW controllers. These example
+building blocks live outside the package's runtime API.
 
-## Network and control assumptions
+## Network and controls
 
-A fixed-voltage source at bus 0 connects to a constant PQ load and one inverter
-at bus 1. The series impedance is ``z=0.02+\mathrm{j}0.08`` per unit, without
-shunts, taps, or phase shifts. With ``V_0=E`` and ``V_1=v e^{\mathrm{j}\theta}``,
-the directed branch powers satisfy
+Branches have series impedance ``z=r+\mathrm{j}x``, without shunts, taps or phase
+shifts. For bus phasors ``V_i=v_i e^{\mathrm{j}\theta_i}``, their end powers are
 
 ```math
-S_{01}=V_0\overline{(V_0-V_1)/z},\qquad
-S_{10}=V_1\overline{(V_1-V_0)/z}.
+S_{ij}=V_i\overline{(V_i-V_j)/z},\qquad
+S_{ji}=V_j\overline{(V_j-V_i)/z}.
 ```
 
-The balances are ``p_g+\mathrm{j}q_g=S_{01}`` and
-``(p-p_L)+\mathrm{j}(q-q_L)=S_{10}``, where ``p_L=0.4`` and ``q_L=0.1``.
-The objective minimizes ``p_g``; the source can absorb exported active power.
-Both branch ends have a 1.5 per-unit apparent-power rating, and the inverter
-has a 1.0 per-unit capability rating:
+Every bus balances load, all attached device injections, source power if
+attached, and branch powers. One source voltage and angle are fixed; bounded
+source P/Q can represent import or export. Branches have separate apparent-power
+ratings at their ends. Each device has availability, hardware Q bounds and
+``p_k^2+q_k^2\le S_k^2``. The objective is
 
 ```math
-|S_{01}|^2\le1.5^2,\quad |S_{10}|^2\le1.5^2,\quad p^2+q^2\le1.
+\min\; c_g p_g + \sum_k \left(c_k p_k+\tfrac12 d_k p_k^2\right).
 ```
 
-All powers share a three-phase system base; voltage uses the corresponding
-positive-sequence per-unit base. The bounds are ``0.88\le v\le1.18``,
-``|\theta|\le0.3`` radians, ``|p_g|,|q_g|\le2``, ``0\le p\le0.8``, and
-``-0.3\le q\le0.3``. The voltage band is deliberately wide enough to exercise
-every control regime. These synthetic data do not specify a grid-code setting.
+Named cases use source cost one and device costs zero. All powers and curve
+outputs share a three-phase system per-unit base; voltage uses its corresponding
+positive-sequence base, and angles are radians. Fixtures are synthetic and do
+not prescribe grid-code settings.
 
-Volt-var fixes reactive injection. Its four voltage breakpoints and output
-values are `(0.94, 0.3)`, `(0.98, 0)`, `(1.02, 0)`, and `(1.06, -0.3)`.
-Volt-watt is an upper bound on active injection, with points `(1.07, 1.0)` and
-`(1.12, 0.2)`. Both curves interpolate linearly and extrapolate constantly.
-Availability remains a separate active-power bound. For these data the
-volt-watt cap becomes tighter than availability above ``v=1.0825``.
+VV fixes ``q_k=F^{VV}_k(v_k)``; VW caps ``p_k\le F^{VW}_k(v_k)`` alongside
+availability. Hardware limits apply simultaneously, with no implicit clipping
+or priority policy. Disabling VV leaves bounded free Q; disabling VW removes
+that cap. Default VV points are `(0.94, 0.3)`, `(0.98, 0)`, `(1.02, 0)`, and
+`(1.06, -0.3)`; default VW points are `(1.07, 1.0)`, `(1.12, 0.2)`.
+Both curves interpolate linearly and extrapolate constantly. The hardware Q
+box `[-0.4, 0.4]` is separate from the `[-0.3, 0.3]` curve plateaus.
 
-The capability circle and fixed reactive-power law apply simultaneously.
-There is no additional clipping, priority switching, or controller dynamics.
-
-## Exact hinge formulation
+## Hinge blocks
 
 The formulation is ported from
-[BMOPFTools.jl PR #383](https://github.com/frederikgeth/BMOPFTools.jl/pull/383),
-at source commit `faf3d455381e15b651808c489237c0dd921d7cf7`.
-For every curve breakpoint ``\kappa_k``, introduce
+[BMOPFTools.jl PR #383](https://github.com/frederikgeth/BMOPFTools.jl/pull/383)
+at commit `faf3d455381e15b651808c489237c0dd921d7cf7`. At each curve knot:
 
 ```math
-r_k-s_k-v=-\kappa_k,\qquad 0\le r_k\perp s_k\ge0.
+r_h-s_h-v_k=-\kappa_h,\qquad 0\le r_h\perp s_h\ge0.
 ```
 
-These equations imply ``r_k=\max(v-\kappa_k,0)``. Let
-``a=-0.3/(0.98-0.94)``, ``b=-0.3/(1.06-1.02)``, and
-``c=(0.2-1)/(1.12-1.07)``. The first four pairs represent volt-var:
+Hence ``r_h=\max(v_k-\kappa_h,0)``. A curve is its first output plus weighted
+hinges, with the change in segment slope as each weight. Any finite ordered
+knot/value arrays are supported. All knots are retained, even zero slope
+changes, for stable indices. Four-knot VV and two-knot VW give six pairs per
+device carrying both laws; disabled laws contribute no pairs.
 
-```math
-q=0.3+a r_1-a r_2+b r_3-b r_4.
-```
+The NLP contains linear hinge/control links, smooth AC balances and equipment
+limits. `MPCCModel` receives the pairs separately. Neither `max` evaluations
+nor product equalities enter the underlying NLP. Colocated devices have their
+own pair indices and aggregate through their common bus balance.
 
-The last two pairs represent the volt-watt cap:
+## Build and inspect
 
-```math
-p\le1+c r_5-c r_6,\qquad p\le0.8.
-```
-
-The NLP contains eight linear constraints: six hinge definitions, the
-volt-var equality, and the volt-watt inequality. Four AC balance equations and
-three equipment limits are nonlinear. Complementarity is supplied separately
-to `MPCCModel(nlp, collect(7:12), collect(13:18))`.
-This keeps the model in vertical form and keeps `max` and product equalities
-out of the underlying NLP. Above the final volt-watt breakpoint, the lower
-plateau is retained; extending the descending affine cap would change the model.
-
-## Construct and inspect a case
-
-The example environment can be prepared from the repository root:
+Prepare the optional example environment from the repository root:
 
 ```sh
 julia --project=examples/opf -e 'using Pkg; Pkg.develop(path=pwd()); Pkg.instantiate()'
 ```
-
-The documentation runs the same constructor and verifies its reference point:
 
 ```@example balanced_opf
 using MPCCModels, NLPModels
 include(joinpath(dirname(pathof(MPCCModels)), "..", "examples", "opf", "balanced-ac-opf.jl"))
 using .BalancedACOPF
 
-data = balanced_ac_opf_case(:curtailment)
-mpcc = BalancedACOPFModel(; case = data.name)
+data = balanced_ac_opf_case(:chain_remote_curtailment)
+layout = opf_layout(data)
+mpcc = BalancedACOPFModel(data)
 x = balanced_ac_opf_reference(data)
 (get_nvar(mpcc), get_ncon(mpcc), get_ncc(mpcc))
 ```
 
-The variable order is `[v, theta, pg, qg, p, q, r[1:6]..., s[1:6]...]`.
-Thus the reference voltage and inverter dispatch are:
+The near-source device is availability-limited in the VV deadband; the remote
+device is VW-limited on the VV absorption plateau:
 
 ```@example balanced_opf
-round.(x[[1, 5, 6]]; digits = 3)
+(p = round.(x[layout.p]; digits = 3), q = round.(x[layout.q]; digits = 3))
 ```
 
 ```@example balanced_opf
-maximum(values(opf_residuals(mpcc, x, data))) < 1e-10
+@assert maximum(values(opf_residuals(mpcc, x, data))) < 1e-10
+opf_coverage(data, x).targets_met
 ```
 
-The constructor defaults to a flat voltage start, distinct from the feasible
-reference. Use `BalancedACOPFModel(; case = data.name, x0 = x)` to supply a
-custom start. Float32 construction is also supported.
+`BalancedACOPFModel(Float32; case = :deadband)` remains available. The original
+twelve two-bus cases keep their 18-variable, 15-constraint, six-pair ordering.
+Use `opf_layout(data)` for indices in new cases. `x0` overrides the flat start;
+starting values are checked after numeric conversion.
 
-## Operating regimes
+## Data and modifications
 
-Both controls are present in all cases. The source voltage is constructed for
-each case so that the following feasible reference points exist; the inverter
-voltage remains a decision variable during optimization.
+`opf_bus`, `opf_branch`, `opf_controller`, and `opf_curve` construct records.
+A model needs `name`, `buses`, `branches`, `controllers`, and `source`. Source
+fields are `bus`, `voltage`, `pmin`, `pmax`, `qmin`, `qmax`, and `cost`.
+Bus indices are array positions and controller IDs are unique. The network
+must be connected with at least one enabled law. Source voltage must satisfy
+its fixed-voltage bus bounds. Negative P loads are rejected; negative Q loads
+are capacitive. Parallel branches and meshes are supported.
 
-| Case | Reference ``v`` | Reference ``p`` | Reference ``q`` |
-| --- | ---: | ---: | ---: |
-| `low_voltage_saturation` | 0.92 | 0.8 | 0.3 |
-| `reactive_injection` | 0.96 | 0.8 | 0.15 |
-| `deadband` | 1.00 | 0.8 | 0 |
-| `reactive_absorption` | 1.04 | 0.8 | -0.15 |
-| `curtailment` | 1.09 | 0.68 | -0.3 |
-| `high_voltage_saturation` | 1.14 | 0.2 | -0.3 |
+Custom data need neither a reference nor targets. `reference` contains per-bus
+voltage/angle and per-device P/Q. `targets` match controller IDs and specify
+`vv_region`, `vw_region`, `voltage_window`, `tight`, and `slack`. Without targets,
+the coverage result is `missing`, not a vacuous success.
 
-Six additional cases sit on every breakpoint: `vv_lower_knee`,
-`vv_deadband_lower`, `vv_deadband_upper`, `vv_upper_knee`, `vw_upper_knee`, and
-`vw_lower_knee`. The volt-watt names refer to the upper and lower power
-plateaus. A pair is biactive at its breakpoint: ``r_k=s_k=0``.
+For example, construct a lower-capability variant using the same blocks:
+
+```@example balanced_opf
+devices = [merge(data.controllers[1], (smax = 0.65,)), data.controllers[2]]
+variant = (name = :custom_capability, buses = data.buses, branches = data.branches,
+    source = data.source, controllers = devices, targets = nothing)
+limited_model = BalancedACOPFModel(variant)
+get_ncc(limited_model)
+```
+
+This builds a new problem; it does not establish that its optimum is on the
+capability circle. The old witness/targets are not carried over. Rating changes
+can alter feasibility, dispatch and curve regimes. Calibrate and verify the
+new targets before adding a named case. Treat data as immutable after building
+the model and rebuild after edits.
+
+## Implemented case matrix
+
+There are 34 single-controller cases: twelve original interiors/knots,
+three missing joint regimes/crossover, seven extra ramp positions and twelve
+left/right knot neighbors. The missing regimes are now covered by:
+
+| Case | Reference voltage | Interpretation |
+| --- | ---: | --- |
+| `saturated_var_flat_watt` | 1.065 | VV saturated; VW upper plateau |
+| `early_watt_ramp` | 1.07625 | VW descending; availability tighter |
+| `availability_watt_crossover` | 1.0825 | Both active-power caps tight |
+
+Ramp cases sample 20/50/80% positions. Each knot has neighbors at plus/minus
+`1e-4` voltage. Knot classification uses a `1e-6` voltage neighborhood; solver
+iterates need not be exactly biactive.
+
+| Two-controller case | Interaction |
+| --- | --- |
+| `fork_mixed_reactive` | VV injection/absorption ramps at different buses |
+| `chain_remote_curtailment` | Near-source availability and remote VW curtailment |
+| `colocated_controllers` | Shared voltage/profile and different availability |
+
+The multiple-controller loads are calibrated jointly from complex branch
+injections under one source, with nonnegative P/Q loads. They do not combine
+independently constructed sources. References are feasibility witnesses,
+not optimality certificates.
 
 ```@example balanced_opf
 all(balanced_ac_opf_cases()) do name
     d = balanced_ac_opf_case(name)
-    model = BalancedACOPFModel(; case = name)
-    maximum(values(opf_residuals(model, balanced_ac_opf_reference(d), d))) < 1e-10
+    model = BalancedACOPFModel(d)
+    point = balanced_ac_opf_reference(d)
+    maximum(values(opf_residuals(model, point, d))) < 1e-10 &&
+        opf_coverage(d, point).targets_met === true
 end
 ```
 
-These are feasible witnesses, not optimality certificates. The package tests
-also construct a feasible dispatch strictly below the volt-watt cap, confirming
-that the cap does not force an output equality.
-
-## Solve and validate
-
-The example environment includes CCOpt; it is not required by the package tests.
-From the repository root, run one case or all twelve:
+## Validate actual solutions
 
 ```sh
-julia --project=examples/opf examples/opf/solve.jl curtailment
 julia --project=examples/opf examples/opf/solve.jl all
+julia --project=examples/opf examples/opf/test-solves.jl
 ```
 
-The script requires successful or acceptable-level termination and checks
-`opf_residuals` against `1e-5` per unit. The reported status preserves this
-distinction. These residuals measure the original linear/nonlinear
-constraints, variable bounds, complementarity, direct volt-var error, and
-direct volt-watt violation. They establish numerical feasibility, not global
-optimality. Solver timings are not benchmarked here.
+The runner checks solver status, original residuals below `1e-5`, and achieved
+coverage. It classifies the **solution**, checking per-device regions, voltage
+windows, tight limits and slack competitors. It reports segment fractions and
+network margins. Being on a descending VW segment does not imply the cap binds.
+Margins use physical per-unit magnitudes, not squared apparent-power slacks.
 
-The solver uses `bound_relax_factor = 0.0` to preserve nonnegative hinge bounds,
-and tight solver/relaxation tolerances to control curve errors near breakpoints.
-At a biactive pair, a product residual of order ``\epsilon`` can allow an
-individual hinge error of order ``\sqrt{\epsilon}``. Direct physical curve
-checks therefore remain necessary even when complementarity products are small.
+The current dispatches are availability- or VW-limited. Binding capability,
+thermal, voltage and source-bound families remain in `examples/opf/CASE_DESIGN.md`
+and the roadmap. Acceptable-level solver status is preserved when returned.
+The tight solver/relaxation tolerances and small initialization bound push are
+illustrative settings for these per-unit examples. Original curve checks remain
+necessary: a product error of order ``\epsilon`` can allow an individual hinge
+error of order ``\sqrt{\epsilon}`` at a knot. Neither feasibility nor coverage
+is a global optimality certificate.
 
-Run `Pkg.test()` for the solver-independent tests, including independent
-complex-phasor checks and finite differences of the gradient, Jacobian, and
-Lagrangian Hessian. Contribution progress is tracked in `examples/opf/ROADMAP.md`.
+`Pkg.test()` checks independent phasor physics and derivatives, Float32/Float64
+references, arbitrary curves, disabled laws, device permutation, bus relabeling,
+source-bus controllers and the split NLP API. A separate CI job runs the solved
+coverage targets with CCOpt.
+
+When a successful homotopy point misses the physical or coverage checks, the
+runner can polish the branch selected from that iterate using `CCOpt.BranchNLP`.
+It preserves the original and final statuses, residuals and coverage. No
+reference or target selects the branch. This selected-sector solve is not a
+full MPCC stationarity or global-optimality test. Set `polish = false` when
+calling `solve_opf_case` to inspect the unrefined homotopy result against the
+same gates.
