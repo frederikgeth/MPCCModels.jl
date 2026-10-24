@@ -1,7 +1,8 @@
-push!(LOAD_PATH,"../src/")
+push!(LOAD_PATH, joinpath(@__DIR__, "..", "src"))
 using Documenter, MPCCModels, NLPModels
 
 makedocs(
+  root = @__DIR__,
   modules = [MPCCModels],
   doctest = true,
   linkcheck = true,
@@ -14,6 +15,7 @@ makedocs(
   pages = [
     "Home" => "index.md",
     "API" => "api.md",
+    "Balanced AC OPF" => "opf.md",
     "Reference" => "reference.md",
   ],
 )

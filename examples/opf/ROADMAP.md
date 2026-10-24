@@ -28,8 +28,8 @@ these reference points are not optimality certificates.
       volt-watt curtailment, and every curve breakpoint.
 - [x] Verify physical feasibility, exact control values, complementarity pairs,
       active bounds, and derivatives in the package test suite.
-- [ ] Add runnable example instructions and a documentation tutorial.
-- [ ] Run the complete tests, documentation checks, and optional CCOpt solves;
+- [x] Add runnable example instructions and a documentation tutorial.
+- [x] Run the complete tests, documentation checks, and optional CCOpt solves;
       record results and commit the finished contribution.
 
 ## Validation and review
@@ -58,7 +58,33 @@ historical numerical results from the draft PR.
 - The mixed linear/nonlinear OPF exposed an existing complementarity-Jacobian
   structure bug. A separate prerequisite commit switches both sides to the full
   underlying Jacobian and adds a regression in Float32 and Float64.
-- Initial focused validation: 636 OPF assertions and 118 MPCC API assertions pass
-  on Julia 1.12.6. All 12 Float64 reference points have maximum residual below
-  `4e-15`; these are feasibility checks, not solve-performance results.
-- Complete-suite, documentation, and all-case solver validation are pending.
+- Complete `Pkg.test()` passes on Julia 1.10.12 and 1.12.6: 802 assertions
+  (48 lifted-model, 118 MPCC API, and 636 OPF). The model uses coordinate arrays
+  for its linear constraints, so the example needs no extra standard-library
+  imports in the isolated test environment.
+- All 12 Float64 reference points have maximum residual below `4e-15`.
+  These are feasibility checks, not solve-performance results.
+- The Documenter build passes, including all executable OPF examples and cross
+  references. External link checking was disabled for the offline build;
+  the normal documentation configuration still enables it. The build script
+  now sets its root explicitly so it works from the repository root.
+- The documented example environment resolves from a fresh manifest. With
+  Julia 1.12.6, CCOpt 0.1.0, and MadNLP 0.10.1, `solve.jl all` returns
+  `SOLVE_SUCCEEDED` for all 12 cases from the default flat starts. Maximum
+  residuals across these runs are:
+
+  | Check | Maximum residual (per unit) |
+  | --- | ---: |
+  | Original NLP constraints | `2.28e-15` |
+  | Variable bounds | `0` |
+  | Complementarity minimum residual | `3.11e-7` |
+  | Direct volt-var error | `2.12e-6` |
+  | Direct volt-watt cap violation | `4.97e-6` |
+
+  The runner checks all five against `1e-5` and preserves the solver status.
+  Relaxation-update options are supplied through `CCOpt.RelaxationOptions`;
+  MadNLP tolerances and bound settings are supplied to `RelaxationSolver`.
+  These experiments establish numerical feasibility, not global optimality
+  or a performance comparison with other solvers.
+- New Julia example and test files are formatted with the repository's
+  JuliaFormatter configuration. `git diff --check` passes.
