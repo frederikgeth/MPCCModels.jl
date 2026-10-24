@@ -261,3 +261,12 @@ generator-Q upper bound. It records achieved knee distances and Q margins for
 raw points and separate witnesses, and sweeps several deterministic perturbation
 seeds. See the optional example's `HARD_SEARCH.md` for the full matrix and replay
 commands. These difficulty searches retain the package's original hinge encoding.
+
+The controlled reduction runner `examples/opf/pglib/search-reductions.jl` compares
+separate and shared exact `(bus,knot)` hinges, controller counts, and availability/
+VW intersections. Shared encoding preserves physical constraints while reducing
+complementarity pairs; controller-policy changes retain hardware but alter the
+physical feasible set. Physical-point transfer gives matched starts across
+representations. Read-only iteration traces retain both solver residuals and
+independent original-curve errors, with constructed witnesses labelled separately
+from solver results.

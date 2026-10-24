@@ -213,3 +213,18 @@ conventional-generator Q limit. It sweeps three limits, three knee offsets and
 six actual starts per input, preserving raw failures and separate numerical
 witnesses. [Protocol and activity checks](HARD_SEARCH.md#ratio-one-simultaneous-transitions-and-generator-q-limit)
 distinguish achieved Q tightness/knee distances from original physical feasibility.
+
+`search-reductions.jl` runs the controlled follow-up: separate/shared exact
+bus-knot hinges, 1/2/3 active policies on unchanged hardware, and VW plateaus equal
+to availability or crossing it inside the ramp. It uses matched physical starts,
+explicitly constructed feasible witnesses, and flushed iteration traces. The
+[reduction protocol](HARD_SEARCH.md#controlled-reduction-matrix) separates
+encoding equivalence, changes to physical policies, and a larger-budget reference.
+
+Shared encoding is opt-in through `transmission_case(...; hinge_encoding=:shared)`
+or `transmission_overlay(data; hinge_encoding=:shared)`. The default remains
+`:separate`, including the accepted case registry. Models retain the existing
+ADNLPModel/MPCCModel design. Snapshots record shared encoding explicitly and
+continue loading historical separate-encoding snapshots without changing their
+serialized inputs. `transmission_start` transfers physical variables and rebuilds
+exact hinges when moving between encodings.

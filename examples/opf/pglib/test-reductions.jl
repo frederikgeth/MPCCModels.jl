@@ -160,3 +160,86 @@ end
         @test !isdir(joinpath(followup, "references"))
     end
 end
+
+@testset "Curated reductions and original physical evidence" begin
+    fixture = TOML.parsefile(joinpath(@__DIR__, "hard-cases", "ieee118-reductions.toml"))
+    bits(x) = bytes2hex(H.sha256(join(bitstring.(Float64.(x)), "\n")))
+    @test fixture["source_file_sha256"] ==
+          H._sha(joinpath(@__DIR__, "data", fixture["source_file"]))
+    @test fixture["source_witness_receipt_sha256"] == H._sha(H.REDUCTION_RECEIPT)
+    @test length(fixture["cases"]) == 12
+    for row in fixture["cases"]
+        data = reduction_case(;
+            encoding = Symbol(row["encoding"]),
+            controlled = row["controlled"],
+            plateau = Symbol(row["plateau"]),
+        )
+        @test bytes2hex(H.sha256(H._toml(H._snapshot(data)))) ==
+              row["input_snapshot_sha256"]
+        witness = row["witness"]
+        @test witness["method"] == "verified_physical_transfer_without_solver"
+        @test bits(witness["x"]) == row["point_bits_sha256"]
+        metrics = H._metrics(T.TransmissionOPFModel(data), data, witness["x"], 1e-7)
+        @test metrics["physically_feasible"]
+        @test metrics["objective"] ≈ witness["metrics"]["objective"] atol=1e-5
+        @test abs(reduction_activity(data, witness["x"])["q45_upper_margin"]) < 1e-6
+    end
+    for row in [fixture["trials"]; fixture["reference"]]
+        data = reduction_case(;
+            encoding = Symbol(row["encoding"]),
+            controlled = row["controlled"],
+            plateau = Symbol(row["plateau"]),
+        )
+        @test bits(row["start"]) == row["start_bits_sha256"]
+        @test bits(row["x"]) == row["point_bits_sha256"]
+        @test isempty(row["trace_errors"])
+        @test row["trace_rows"] > 0
+        actual = H._metrics(T.TransmissionOPFModel(data), data, row["x"], row["tolerance"])
+        @test actual["physically_feasible"] == row["physically_feasible"]
+        @test actual["objective"] ≈ row["objective"] atol=1e-5
+        for (key, value) in row["residuals"]
+            @test actual["residuals"][key] ≈ value atol=1e-10
+        end
+    end
+    # The smallest recorded 500-iteration failure and its matched encoding recovery
+    # have identical physical constraints, settings and physical starting points.
+    small = only(
+        filter(
+            r ->
+                r["encoding"]=="shared" &&
+                r["controlled"]==1 &&
+                r["plateau"]=="crossing" &&
+                r["start_label"]=="flat",
+            fixture["trials"],
+        ),
+    )
+    match = only(
+        filter(
+            r ->
+                r["encoding"]=="separate" &&
+                r["controlled"]==1 &&
+                r["plateau"]=="crossing" &&
+                r["start_label"]=="flat",
+            fixture["trials"],
+        ),
+    )
+    a = reduction_case(; encoding = :shared, controlled = 1, plateau = :crossing)
+    b = reduction_case(; encoding = :separate, controlled = 1, plateau = :crossing)
+    @test a.pm == b.pm && a.controllers == b.controllers
+    @test length(T.transmission_layout(a).r)==5
+    @test small["profile"]==match["profile"]
+    @test T.transmission_start(a, b, match["start"]) == small["start"]
+    @test small["classification"]=="solver_failure"
+    @test match["classification"]=="success"
+    @test fixture["reference"]["profile"]["max_iter"]==2000
+    @test fixture["reference"]["iterations"]>500
+    @test !fixture["reference"]["physically_feasible"]
+    lines=readlines(joinpath(@__DIR__, "hard-cases", "ieee118-reductions-sweep.tsv"))
+    header=split(first(lines), '\t')
+    classcol=findfirst(==("classification"), header)
+    rows=[split(line, '\t') for line in lines[2:end]]
+    @test length(rows)==60
+    for (key, value) in fixture["classifications"]
+        @test count(r -> r[classcol]==key, rows)==value
+    end
+end

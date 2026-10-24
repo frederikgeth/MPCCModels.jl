@@ -342,12 +342,69 @@ the complete physical feasible set. Use identical physical flat and witness
 starts across encodings. Preserve constructed feasible witnesses separately from
 solver results and report that they do not establish optima of reduced cases.
 
-- [ ] Add shared-hinge encoding, physical-point transfer and equivalence tests.
-- [ ] Add the policy-count/plateau matrix, snapshots and explicit activity reports.
-- [ ] Add read-only, flushed iteration traces of barrier/relaxation parameters,
+- [x] Add shared-hinge encoding, physical-point transfer and equivalence tests.
+- [x] Add the policy-count/plateau matrix, snapshots and explicit activity reports.
+- [x] Add read-only, flushed iteration traces of barrier/relaxation parameters,
       primal/dual residuals and independently evaluated physical errors.
-- [ ] Run 24 flat/witness trials at 500 iterations and a separate 2000-iteration
+- [x] Run 24 flat/witness trials at 500 iterations and a separate 2000-iteration
       reference; preserve every request, failure, point and witness.
-- [ ] Repeat informative paired contrasts with three matched perturbation seeds.
-- [ ] Curate the smallest observed failure and matched recoveries, validate on
+- [x] Repeat informative paired contrasts with three matched perturbation seeds.
+- [x] Curate the smallest observed failure and matched recoveries, validate on
       both supported Julia versions, and identify the next reduction.
+
+### Reduction results and next priorities
+
+The full 12-variant × five-start matrix gives **41 physical passes, 10 accuracy
+gaps and 9 iteration-limit exits**. All inputs have explicit constructed numerical
+witnesses, with their provenance separated from solver runs. The three matched
+perturbations were extended to every variant after flat/witness results showed
+encoding/start interactions in both directions. Starts match in every physical
+variable across variants and encodings for each of the five labels/seeds.
+
+- Separate equal-plateau cases: one/two controllers give accuracy gaps on all
+  five starts; three controllers reach 500 iterations on all five.
+- Separate ramp-crossing cases pass on all 15 starts. Shared equal-plateau
+  one/two-controller cases pass on all ten starts; the three-controller case
+  fails from flat and passes the other four.
+- Every shared ramp-crossing input has one iteration-limit exit and four passes.
+  The one/three-controller failures are flat; the two-controller failure starts
+  from a verified feasible witness. Sharing is not uniformly easier.
+- The smallest iteration-limit example uses one controller, five shared pairs,
+  360 variables and 804 ordinary constraints. Its separate-hinge counterpart
+  passes from the same physical flat start. It is initialization-sensitive:
+  witness and all three perturbed starts pass.
+- The 2,000-iteration original reference terminates with a solved status at
+  iteration 1,145 but still misses the physical gate (VV error `2.29e-4` pu).
+  This is a budget-sensitive exit followed by an accuracy gap, not evidence of
+  permanent nontermination. Traces retain both solver and original residuals.
+
+The [results/protocol](HARD_SEARCH.md#completed-reduction-results-2026-10-25)
+and [portable records](hard-cases/README.md#controlled-reduction-records) retain
+all 60 outcomes, twelve witnesses, ten representative raw trials, the extended
+reference and representative convergence series. Long runs remain manual; CI
+checks encoding equivalence, derivatives, witness/point integrity, tracing and
+resume/replay without requiring future solvers to keep failing.
+
+Next priorities:
+
+- [ ] Reduce the network/dispatchable-device complexity of the five-pair case
+      while preserving a reproducible flat-start failure and verified witness.
+- [ ] Compare physical-accuracy requirements with inner tolerance and actual
+      mu/sigma at termination; retain accuracy gaps independently of solver status.
+- [ ] Examine selected-sector objective and stationarity evidence separately
+      from feasibility before promoting new examples into the solved registry.
+- [ ] Test nearby bus placements after the minimal failure and matched encoding
+      recovery are stable; defer larger networks until these contrasts are clear.
+
+Validation: **585 reduction/curated-record assertions** pass on Julia 1.10.12
+and 1.12.6. Existing **419 hard-search**, **578 transmission-model** and **235
+solved-case** assertions pass on Julia 1.12.6. Documenter builds locally with
+external link checking disabled. Full resume preserves all **366 raw/reference
+files** byte for byte. Remote CI is pending.
+
+The smallest shared one-controller flat request replays with identical returned
+point and original residuals, again reaching 500 iterations. Complete local
+archives are `search-results/ieee118-reductions-2026-10-25.tar.gz` (SHA-256
+`d1e68a14d76c1c02a1afae24e26a8d6c46a0169d12e57ea9d4f65e7b448f7387`)
+and `search-results/ieee118-reduction-seeds-2026-10-25.tar.gz` (SHA-256
+`0ba001433684b3cf24ac2d175ddd608558ad1226f1f166b206a4dfe1237c4e0b`).

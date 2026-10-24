@@ -75,3 +75,5 @@ jobs:
         run: julia --project=examples/opf/pglib examples/opf/pglib/test-studies.jl
       - name: Verify hard-case recorder and archived numerical witness
         run: julia --project=examples/opf/pglib examples/opf/pglib/test-hard-search.jl
+      - name: Verify shared-hinge equivalence, reduction witnesses and traces
+        run: julia --project=examples/opf/pglib examples/opf/pglib/test-reductions.jl

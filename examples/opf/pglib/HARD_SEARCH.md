@@ -405,3 +405,89 @@ stored under `references/`, outside the 24-trial matrix. These finite budgets
 measure observed progress; an iteration limit does not establish permanent
 algorithmic stagnation. Matched perturbation batches use explicit seeds and
 separate output plans. Resume never overwrites complete raw attempts.
+
+To add only seeded paired starts, without repeating flat/witness runs or the
+larger-budget reference:
+
+```sh
+julia --project=examples/opf/pglib examples/opf/pglib/search-reductions.jl \
+  --out=examples/opf/pglib/search-results/ieee118-reduction-seeds-2026-10-25 \
+  --starts=perturbed_witness --seeds=20261025,20261026,20261027 --no-reference
+```
+
+A seeded physical point is generated once from the central three-policy input,
+then transferred into each variant with exact target hinges. It may violate
+network balance or policies initially; it is an explicitly perturbed start, not
+an additional feasible witness. Availability, hardware and physical-variable
+order match, so each seed has identical V/angle/generator/inverter P/Q across
+both encodings and all policy-count/plateau variants.
+
+### Completed reduction results (2026-10-25)
+
+The complete matrix has **60 raw trials**: flat, the common verified witness,
+and three matched perturbations for each of 12 variants. Results are **41
+physical passes, 10 solved-status accuracy gaps and 9 iteration-limit exits**.
+Every input has a separately stored constructed feasible witness. There are no
+exceptions, trace errors, missing starts or unresolved-feasibility cases.
+
+Each entry below gives **physical passes / accuracy gaps / iteration limits**
+among the five starts. Physical passes require both successful status and all
+original residuals at `1e-5`.
+
+| Controlled devices | VW plateau | Separate hinges | Shared hinges |
+| --- | --- | --- | --- |
+| 1 | Equal to availability | 0 / 5 / 0 | 5 / 0 / 0 |
+| 1 | Crossover in ramp | 5 / 0 / 0 | 4 / 0 / 1 |
+| 2 | Equal to availability | 0 / 5 / 0 | 5 / 0 / 0 |
+| 2 | Crossover in ramp | 5 / 0 / 0 | 4 / 0 / 1 |
+| 3 | Equal to availability | 0 / 0 / 5 | 4 / 0 / 1 |
+| 3 | Crossover in ramp | 5 / 0 / 0 | 4 / 0 / 1 |
+
+The separate equal-plateau cases with one/two controllers terminate successfully
+but leave VV errors around `1.08e-4`/`1.62e-4` pu. The trace records small product-
+based solver residuals alongside much larger minimum-hinge and direct-curve
+errors. For example, the one-controller flat case stops with mu/sigma near
+`9.09e-11`, reported primal residual `9.08e-11`, minimum-hinge violation
+`6.74e-6` and VV error `1.08e-4`. Those measures must not be interchanged.
+
+Sharing recovers these accuracy-gap cases and four starts of the original
+three-controller case, but is **not a universal improvement**. The smallest
+recorded iteration-limit example has **one controller, five shared pairs, 360
+variables and 804 ordinary constraints**, with availability crossing the VW ramp.
+Its flat start reaches 500 iterations, with VV error `9.06e-3` and VW violation
+`4.11e-2` pu. The physically identical separate-hinge case passes from the same
+physical start in 385 iterations; the shared case passes from its witness and
+all three perturbations. The shared two-controller crossing case instead fails
+from the witness; shared three-controller cases fail from flat. These are
+encoding/start interactions, not evidence of monotonically increasing difficulty
+with controller count or redundant pairs.
+
+The original separate/three-controller/equal-plateau reference reaches
+`SOLVE_SUCCEEDED` at **1,145 iterations** under the 2,000-iteration budget. It
+still fails the physical gate: VV error `2.29e-4` pu and minimum-hinge violation
+`9.53e-6`. Thus the original 500-iteration exits are budget-sensitive, while
+termination alone still does not establish the direct laws. The reference is
+retained separately and excluded from the 60-trial census.
+
+The [curated reduction receipt](hard-cases/README.md#controlled-reduction-records)
+contains all 12 constructed witnesses, ten representative raw trials and the
+larger-budget reference, with actual starts/points, profiles, checksums and
+original diagnostics. The census retains all 60 outcomes; the trace TSV retains
+five representative convergence series. Physical starts match exactly across
+encodings and variants for each start label/seed. No failed raw result is
+polished or replaced by these witnesses.
+
+Validation: **585 reduction/curated-record assertions** pass on Julia 1.10.12
+and 1.12.6, alongside the existing 419 hard-search, 578 model and 235 solved-case
+assertions on Julia 1.12.6. Resume preserves all **366 raw/reference files** byte
+for byte, and the five physical start-label/seed combinations match exactly
+across every variant. Replaying the smallest shared one-controller flat failure
+reproduces the 500-iteration status, identical returned vector and identical
+original residuals. The observer records no errors in either search batch.
+
+Complete local archives (excluded from Git):
+
+- `search-results/ieee118-reductions-2026-10-25.tar.gz`, SHA-256
+  `d1e68a14d76c1c02a1afae24e26a8d6c46a0169d12e57ea9d4f65e7b448f7387`.
+- `search-results/ieee118-reduction-seeds-2026-10-25.tar.gz`, SHA-256
+  `0ba001433684b3cf24ac2d175ddd608558ad1226f1f166b206a4dfe1237c4e0b`.

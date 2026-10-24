@@ -77,3 +77,39 @@ replay and Q sensitivities are retained locally under
 `../search-results/ieee118-transitions-2026-10-24/` and its sibling `.tar.gz`.
 These research artifacts are excluded from Git; the receipt and TSV above are
 portable committed records.
+
+## Controlled reduction records
+
+`ieee118-reductions.toml` preserves all 12 constructed feasible witnesses, ten
+representative raw points and the separate 2,000-iteration reference. Rebuild
+inputs using `reduction_case(; encoding=Symbol(row["encoding"]),
+controlled=row["controlled"], plateau=Symbol(row["plateau"]))`. The witnesses
+are transfers of the archived central physical point, independently checked
+against each target input; they are explicitly labelled as constructions with
+no new solver invocation or optimum claim.
+
+The records include the smallest observed iteration-limit example: one
+controller and five shared hinges, with a crossover inside the VW ramp, failing
+from flat. Its separate-hinge counterpart passes from the identical physical
+start. Other records retain the reverse contrast, where sharing resolves a
+solved-status accuracy gap, and the original three-controller failure followed
+by a larger-budget solved status that still violates the direct VV law.
+
+```julia
+receipt = TOML.parsefile("examples/opf/pglib/hard-cases/ieee118-reductions.toml")
+trial = only(filter(t -> t["encoding"] == "shared" && t["controlled"] == 1 &&
+    t["plateau"] == "crossing" && t["start_label"] == "flat", receipt["trials"]))
+data = reduction_case(; encoding=Symbol(trial["encoding"]),
+    controlled=trial["controlled"], plateau=Symbol(trial["plateau"]))
+run_trial(data, trial["start"], trial["profile"], "NEW_REDUCTION_REPLAY_DIRECTORY";
+    start_label=trial["start_label"], trace_every=trial["trace_every"])
+```
+
+`ieee118-reductions-sweep.tsv` holds all 60 raw outcomes and physical residuals.
+`ieee118-reductions-traces.tsv` holds representative iteration series for the
+separate/shared one-controller equal/crossing contrasts and the larger-budget
+reference. Original complete logs, inputs, starts, points, witnesses, source and
+environment snapshots remain in the two local ignored directories
+`../search-results/ieee118-reductions-2026-10-25/` and
+`../search-results/ieee118-reduction-seeds-2026-10-25/`, with sibling `.tar.gz`
+archives. Source PGLib attribution and license remain unchanged.
