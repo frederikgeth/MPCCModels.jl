@@ -195,3 +195,14 @@ exploration. Diagnostics include normalized inverter margins, distance to each
 curve's nearest knot and conventional-generator fixed-box flags. Coincident
 knots currently have separate hinge pairs; replica populations therefore add
 redundancy at knees as well as increasing controller count.
+
+## CCOpt hard-case search
+
+The separate [hard-case search harness](HARD_SEARCH.md) sweeps IEEE 118 inverter
+capability, starts and explicit CCOpt settings. It retains solver failures,
+exceptions, raw points and original physical errors, with separately verified
+feasibility witnesses. Complete local snapshots, starts, solver options and
+environment/source fingerprints support resume and replay. The first
+[curated capability-0.82 receipt](hard-cases/README.md) includes an exact-sector
+witness and representative failed/recovered homotopy runs. These are solver
+robustness experiments; they do not replace the successful regression cases.

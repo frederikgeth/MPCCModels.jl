@@ -74,6 +74,12 @@ function _capture_environment(directory, environment)
         target = joinpath(directory, "environment", name)
         isfile(path) && !isfile(target) && cp(path, target)
     end
+    for name in ("LICENSE", "README.md")
+        source = joinpath(HERE, "data", name)
+        target = joinpath(directory, "source_data", name)
+        mkpath(dirname(target))
+        isfile(target) || cp(source, target)
+    end
     return nothing
 end
 
@@ -461,7 +467,7 @@ function summarize_search(directory)
                         )
                 end
             end
-            category = r["state"] == "complete" ? r["classification"] : "interrupted"
+            category = r["state"] == "complete" ? r["classification"] : "unfinished"
             tag =
                 category == "solver_failure" ?
                 (witnesses[key] ? "known_feasible_failure" : "unresolved_feasibility") :
@@ -473,7 +479,7 @@ function summarize_search(directory)
                 "repeat"=>p["provenance"]["repeat"],
                 "start"=>p["start_label"],
                 "profile"=>p["profile"]["name"],
-                "status"=>get(r, "status", "interrupted"),
+                "status"=>get(r, "status", "unfinished"),
                 "classification"=>category,
                 "finding"=>tag,
                 "witness_available"=>witnesses[key],
@@ -529,7 +535,7 @@ function summarize_search(directory)
                     r -> r["classification"] == "unavailable_start",
                     selected,
                 ),
-                "interrupted"=>count(r -> r["classification"] == "interrupted", selected),
+                "unfinished"=>count(r -> r["classification"] == "unfinished", selected),
                 "witness_available"=>any(r -> r["witness_available"], selected),
             ),
         )
@@ -552,7 +558,7 @@ function summarize_search(directory)
             "exceptions",
             "unresolved_feasibility",
             "unavailable_starts",
-            "interrupted",
+            "unfinished",
             "witness_available",
         ]
         println(io, join(headings, '\t'))

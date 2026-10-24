@@ -73,3 +73,5 @@ jobs:
         run: julia --project=examples/opf/pglib examples/opf/pglib/test-solves.jl
       - name: Verify placement, population and isolated network sensitivities
         run: julia --project=examples/opf/pglib examples/opf/pglib/test-studies.jl
+      - name: Verify hard-case recorder and archived numerical witness
+        run: julia --project=examples/opf/pglib examples/opf/pglib/test-hard-search.jl

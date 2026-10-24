@@ -152,3 +152,62 @@ end
         end
     end
 end
+
+@testset "Curated feasible witness and preserved raw outcomes" begin
+    fixture =
+        TOML.parsefile(joinpath(@__DIR__, "hard-cases", "ieee118-capability-082.toml"))
+    data = capability_case(fixture["factor"])
+    @test fixture["source_file_sha256"] ==
+          HardCaseSearch._sha(joinpath(@__DIR__, "data", fixture["source_file"]))
+    model = HardCaseSearch.TransmissionOPFModel(data)
+    witness = fixture["witness"]["x"]
+    bits_sha(x) = bytes2hex(HardCaseSearch.sha256(join(bitstring.(Float64.(x)), "\n")))
+    @test bits_sha(witness) == fixture["witness"]["point_bits_sha256"]
+    metrics = HardCaseSearch._metrics(model, data, witness, fixture["witness"]["tolerance"])
+    @test metrics["physically_feasible"]
+    @test metrics["objective"] ≈ fixture["witness"]["objective"] atol=1e-5
+    @test abs(metrics["controllers"][3]["margins"]["capability"]) < 1e-7
+    @test abs(metrics["controllers"][3]["margins"]["volt_watt"]) < 1e-7
+    @test metrics["controllers"][3]["margins"]["availability"] > 1e-3
+    for trial in fixture["trials"]
+        @test bits_sha(trial["x"]) == trial["point_bits_sha256"]
+        @test bits_sha(trial["start"]) == trial["start_bits_sha256"]
+        actual = HardCaseSearch._metrics(model, data, trial["x"], 1e-5)
+        @test actual["physically_feasible"] == trial["physically_feasible"]
+        for (key, value) in trial["residuals"]
+            @test actual["residuals"][key] ≈ value atol=1e-10
+        end
+    end
+    # Feasibility does not require a success termination, and it must not turn
+    # the failed termination into a successful homotopy record.
+    mktempdir() do directory
+        feasible_failure(m, c; mask = nothing) = Dict(
+            "status"=>"TEST_LIMIT",
+            "solver_success"=>false,
+            "iterations"=>1,
+            "solution"=>copy(witness),
+            "point_source"=>"returned_solution",
+        )
+        trial = joinpath(directory, "feasible-failure")
+        result = run_trial(
+            data,
+            nothing,
+            solver_profile(:current),
+            trial;
+            executor = feasible_failure,
+        )
+        @test result["classification"] == "solver_failure"
+        @test result["physically_feasible"]
+        @test verified_point(trial) ≈ witness
+        case = HardCaseSearch._save_case(directory, 0.82)
+        @test HardCaseSearch._register_witness(directory, case, trial; tolerance = 1e-7) ≈
+              witness
+        other_case = HardCaseSearch._save_case(directory, 0.84)
+        @test_throws ErrorException HardCaseSearch._register_witness(
+            directory,
+            other_case,
+            trial;
+            tolerance = 1e-7,
+        )
+    end
+end

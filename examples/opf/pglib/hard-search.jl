@@ -42,7 +42,11 @@ function _options(x, depth = 0)
         isnothing(x)
     ) && return _plain(x)
     depth >= 3 && return string(x)
-    return Dict(string(k)=>_options(getfield(x, k), depth+1) for k in fieldnames(typeof(x)))
+    result = Dict{String,Any}("_type"=>string(typeof(x)))
+    for key in fieldnames(typeof(x))
+        result[string(key)] = _options(getfield(x, key), depth+1)
+    end
+    return result
 end
 
 function _toml(x)

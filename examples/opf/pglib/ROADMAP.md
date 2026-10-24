@@ -219,21 +219,22 @@ suite as a model-correctness check.
   solve yields a numerically feasible point. Default-like and exact-start
   settings give different outcomes, so this is a parameter/start-sensitive
   candidate, not a universal CCOpt failure.
-- [ ] Sweep S ratings around the capability/VW/availability intersection while
+- [x] Sweep S ratings around the capability/VW/availability intersection while
   holding availability, control profiles, network and costs fixed.
-- [ ] Compare flat, neighboring-case, seeded perturbed and verified-witness
+- [x] Compare flat, neighboring-case, seeded perturbed and verified-witness
   starts; save their actual vectors and source provenance.
-- [ ] Compare explicit default-like/current settings and individual changes
+- [x] Compare explicit default-like/current settings and individual changes
   to inner tolerance, relaxation ratio and relaxation floor.
-- [ ] Persist every raw result before any separate witness/refinement work;
-  retain exceptions, returned/current iterates and original physical checks.
-- [ ] Save full input snapshots, package/source fingerprints, effective solver
+- [x] Checkpoint raw requests before solving and preserve their results
+  independently of witness/refinement work; retain exceptions, returned/current
+  iterates and original physical checks.
+- [x] Save full input snapshots, package/source fingerprints, effective solver
   options, budgets, timings, checksums and replayable request records.
-- [ ] Verify and preserve feasible witnesses separately from homotopy results.
-- [ ] Warm up before timed trials, retain warmups separately, support safe
+- [x] Verify and preserve feasible witnesses separately from homotopy results.
+- [x] Warm up before timed trials, retain warmups separately, support safe
   resume/replay, and summarize known-feasible failures versus accuracy gaps,
   unresolved feasibility and interface errors.
-- [ ] Run a first complete matrix, curate the 0.82 reproduction and add tests
+- [x] Run a first complete matrix, curate the 0.82 reproduction and add tests
   that verify the recorder without requiring a particular solver failure.
 
 The BMOPFTools comparison at `faf3d455381e15b651808c489237c0dd921d7cf7`
@@ -242,3 +243,38 @@ informs this design: active controls, solver/formulation controls, original-curv
 checks, sensitivity to inner tolerances, and timing after compilation. Product
 residuals alone do not measure the physical error of a steep droop curve. API
 exceptions and smooth-formulation overflow remain separate failure categories.
+
+### First search results and next steps
+
+The [harness instructions and results](HARD_SEARCH.md) describe the complete
+160-trial run: 22 non-success terminations on known-feasible inputs, 52
+solved-status accuracy gaps and 86 runs passing both status and original physical
+checks. All eight capability variants have independently verified witnesses.
+The [committed 0.82 receipt](hard-cases/README.md) preserves a witness plus
+failed, accuracy-limited and recovered raw runs, with actual start/point vectors
+and bit hashes. The complete search is retained locally under `search-results/`.
+
+The five current-profile failures occur only from flat starts at factors
+0.78–0.83; a matched change of relaxation ratio recovers all five. Seven of the
+22 non-success trials report local infeasibility despite verified witnesses.
+This is evidence of configuration/initialization sensitivity, not a claim of
+universal algorithm failure. Small default-profile physical errors are recorded
+separately from stalled, large-residual results.
+
+- [ ] Refine the current-profile flat-start transition between 0.83 and 0.84.
+- [ ] Repeat with several explicit perturbation seeds and fixed resource budgets.
+- [ ] Minimize network/controller complexity while preserving a reproducible
+  failure and an independently verified witness.
+- [ ] Add simultaneous-knee/colocated and stressed-PV families to the same
+  failure-retaining protocol; compare redundant and shared-knot encodings.
+- [ ] Assess feasible-point objective/stationarity evidence separately from
+  termination and feasibility, without treating a better point as proof against
+  local optimality or a selected-sector solution as a full MPCC certificate.
+
+Validation: **105 harness/curated-record assertions** pass on Julia 1.10.12 and
+1.12.6. The existing **578 PGLib model assertions** pass on Julia 1.12.6, and
+Documenter builds with external link checks disabled locally. The archived
+0.82 flat/current request was replayed under the finalized recorder and again
+stopped at 500 iterations with the same returned-point residuals. Full resume
+left all 800 raw-attempt files unchanged. CI runs the short recorder/witness
+tests; the 160-trial search remains an explicit research run.

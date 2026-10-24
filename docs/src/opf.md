@@ -230,3 +230,27 @@ PowerModels/Ipopt solves; `test-solves.jl` checks original feasibility, achieved
 activity, matched hardware and limit perturbations. These are local numerical
 checks and do not certify global optimality or full MPCC stationarity. Data
 provenance, attribution, licenses and checksums are retained in the example.
+
+## Searching for solver difficulty
+
+The optional `examples/opf/pglib/search-hard-cases.jl` runner complements the
+regression suite with failure-retaining experiments. It sweeps IEEE 118
+capability limits, initial points and explicit solver profiles. Each raw CCOpt
+attempt preserves its status, point, options, original physical errors and
+reproducible input/start snapshots; failed runs are not automatically polished.
+Separate exact-sector solves provide independently checked numerical feasibility
+witnesses. Solver failure without a witness remains unresolved feasibility, not
+a mathematical infeasibility certificate.
+
+```sh
+julia --project=examples/opf/pglib examples/opf/pglib/search-hard-cases.jl \
+  --caps=0.82 --starts=flat,witness --profiles=defaults,current \
+  --out=examples/opf/pglib/search-results/cap082
+```
+
+The harness documentation, artifact schema and resume/replay instructions are
+in `examples/opf/pglib/HARD_SEARCH.md`. A committed capability-0.82 receipt
+retains representative raw failures/recoveries and a feasible witness. CI
+rechecks that witness and the recorder, without requiring future solver versions
+to keep failing. Full search outputs remain separate from the accepted regime
+regressions and are ignored by Git.
