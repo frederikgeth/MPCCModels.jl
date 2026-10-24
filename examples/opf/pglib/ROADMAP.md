@@ -330,3 +330,24 @@ resume preserves all **270 raw-attempt files** byte for byte. Remote CI remains
 pending. The complete local archive is
 `search-results/ieee118-transitions-2026-10-24.tar.gz` (SHA-256
 `56d834e6c5e6a12737aa7665a11f77fa662b2800d8eff7f7fcd5f334b35b7d41`).
+
+## Controlled reduction of the ratio-one failures
+
+Use the zero-offset, Q-upper=0.35 pu input as the reference. First run the
+12-variant matrix: separate/shared exact `(bus,knot)` hinges × 1/2/3 controlled
+devices × upper VW plateau equal to availability / crossover inside the ramp.
+All three inverter hardware records, costs and network data stay fixed. Disabled
+policies leave their devices dispatchable; only the encoding comparison preserves
+the complete physical feasible set. Use identical physical flat and witness
+starts across encodings. Preserve constructed feasible witnesses separately from
+solver results and report that they do not establish optima of reduced cases.
+
+- [ ] Add shared-hinge encoding, physical-point transfer and equivalence tests.
+- [ ] Add the policy-count/plateau matrix, snapshots and explicit activity reports.
+- [ ] Add read-only, flushed iteration traces of barrier/relaxation parameters,
+      primal/dual residuals and independently evaluated physical errors.
+- [ ] Run 24 flat/witness trials at 500 iterations and a separate 2000-iteration
+      reference; preserve every request, failure, point and witness.
+- [ ] Repeat informative paired contrasts with three matched perturbation seeds.
+- [ ] Curate the smallest observed failure and matched recoveries, validate on
+      both supported Julia versions, and identify the next reduction.
