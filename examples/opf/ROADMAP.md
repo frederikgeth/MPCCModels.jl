@@ -148,3 +148,9 @@ in this matrix continue to apply alongside the fixed reactive-power law.
   them. Local Markdown links and `git diff --check` pass.
 - A separate Julia 1.12 CI job runs the solver integration gate. Its workflow
   has been added; no claim of a remote CI run is made before the PR is opened.
+
+## PGLib transmission expansion
+
+The next stage is tracked in the [PGLib roadmap](pglib/ROADMAP.md), including
+canonical import validation, matched control overlays, solved regime coverage
+and sensitivity checks for binding equipment limits.
