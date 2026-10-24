@@ -77,3 +77,5 @@ jobs:
         run: julia --project=examples/opf/pglib examples/opf/pglib/test-hard-search.jl
       - name: Verify shared-hinge equivalence, reduction witnesses and traces
         run: julia --project=examples/opf/pglib examples/opf/pglib/test-reductions.jl
+      - name: Verify application families, matched policies and physical coverage
+        run: julia --project=examples/opf/pglib examples/opf/pglib/test-applications.jl

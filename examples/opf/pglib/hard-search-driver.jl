@@ -4,6 +4,7 @@ function _source_files()
         joinpath(HERE, n) for n in (
             "transmission-opf.jl",
             "cases.jl",
+            "application-cases.jl",
             "studies.jl",
             "diagnostics.jl",
             "hard-search.jl",
@@ -12,6 +13,8 @@ function _source_files()
             "search-trace.jl",
             "reduction-search.jl",
             "search-reductions.jl",
+            "application-search.jl",
+            "search-applications.jl",
             "search-hard-cases.jl",
             "Project.toml",
         )

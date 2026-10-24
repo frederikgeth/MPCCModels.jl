@@ -569,5 +569,6 @@ end
 include("diagnostics.jl")
 include("cases.jl")
 include("studies.jl")
+include("application-cases.jl")
 
 end

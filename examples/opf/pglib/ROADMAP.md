@@ -56,9 +56,9 @@ useful infrastructure and an explicitly labelled formulation/degeneracy family.
 
 ### First implementation milestone
 
-- [ ] Add three application cards and parameterized IEEE 118 constructors, each
+- [x] Add three application cards and parameterized IEEE 118 constructors, each
       with three physical operating levels and heterogeneous plants.
-- [ ] Add matched policy variants, input/derivative tests and application metadata.
+- [x] Add matched policy variants, input/derivative tests and application metadata.
 - [ ] Run the first nine both-law inputs with multiple starts/settings, matched
       dispatchable baselines, separate witnesses and complete failure retention.
 - [ ] Report achieved activity/curve coverage, measured difficulty and gaps;

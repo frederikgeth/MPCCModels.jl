@@ -127,7 +127,12 @@ function _execute(model, c; mask = nothing, trace = nothing)
     ipm, solver, stats = nothing, nothing, nothing
     initial = time_ns()
     try
-        if isnothing(mask)
+        if !(model isa AbstractMPCCModel)
+            isnothing(mask) ||
+                throw(ArgumentError("ordinary NLP has no complementarity sector"))
+            observer = isnothing(trace) ? (;) : (intermediate_callback = trace,)
+            ipm = CCOpt.MadNLP.MadNLPSolver(model; _ipm_kwargs(c)..., observer...)
+        elseif isnothing(mask)
             options = CCOpt.RelaxationOptions(
                 sigma_min = c["sigma_min"],
                 relaxation_update = CCOpt.ProportionalRelaxationUpdate{Float64}(
@@ -156,7 +161,7 @@ function _execute(model, c; mask = nothing, trace = nothing)
         start = time_ns()
         try
             stats =
-                isnothing(mask) ? CCOpt.solve_homotopy!(solver) : CCOpt.MadNLP.solve!(ipm)
+                isnothing(solver) ? CCOpt.MadNLP.solve!(ipm) : CCOpt.solve_homotopy!(solver)
         finally
             result["solve_call_seconds"] = (time_ns()-start)/1e9
         end
@@ -463,4 +468,5 @@ include("search-trace.jl")
 include("hard-search-driver.jl")
 include("transition-search.jl")
 include("reduction-search.jl")
+include("application-search.jl")
 end
