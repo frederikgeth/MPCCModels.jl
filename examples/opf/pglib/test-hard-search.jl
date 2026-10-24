@@ -211,3 +211,72 @@ end
         )
     end
 end
+
+@testset "Simultaneous-transition case invariants and independent activity" begin
+    T = HardCaseSearch.TransmissionOPF
+    base = T.pglib_control_case(:ieee118; targets = [], network_targets = [])
+    data = transition_case()
+    @test data.buses == base.buses
+    @test data.branches == base.branches
+    @test length(data.generators) == 54
+    for (g, b) in zip(data.generators, base.generators)
+        @test g == (g.id == 45 ? merge(b, (qmax = 0.35,)) : b)
+    end
+    @test all(c -> c.bus == 95, data.controllers)
+    @test data.buses[data.generators[45].bus].id == 100
+    @test data.generators[45].id == 45
+    @test length(T.transmission_layout(data).r) == 18
+    for (c, b) in zip(data.controllers, base.controllers)
+        @test (c.smax, c.p_available, c.qmin, c.qmax, c.cost, c.quadratic_cost) ==
+              (b.smax, b.p_available, b.qmin, b.qmax, b.cost, b.quadratic_cost)
+        @test c.vv.knots[3] == c.vw.knots[1] == 1.02
+        @test c.vw.values[1] ≈ c.p_available
+    end
+    l = T.transmission_layout(data)
+    x = copy(HardCaseSearch.get_x0(T.TransmissionOPFModel(data)))
+    x[l.v[95]] = 1.02
+    x[l.qg[45]] = 0.35
+    activity = transition_activity(data, x)
+    @test activity["simultaneous_controllers"] == 3
+    @test activity["q45_binding"]
+    @test !HardCaseSearch._metrics(T.TransmissionOPFModel(data), data, x, 1e-5)["physically_feasible"]
+    separated = transition_case(; offset = 1e-4)
+    @test transition_activity(separated, x)["simultaneous_controllers"] == 0
+    @test separated.controllers[1].vv == data.controllers[1].vv
+    @test separated.generators == data.generators
+    @test_throws ArgumentError transition_case(; qmax = -0.5)
+    @test_throws ArgumentError transition_case(; knee = 0.95)
+    @test_throws ArgumentError transition_case(; offset = Inf)
+    @test_throws ArgumentError transition_activity(data, x; q_tolerance = 0)
+    mktempdir() do dir
+        output = joinpath(dir, "search")
+        kw = (
+            offsets = [0.0],
+            qmaxes = [0.35],
+            seeds = [7, 8],
+            max_iter = 1,
+            max_wall_time = 10.0,
+            progress = false,
+        )
+        rows = run_transition_search(output; kw...)
+        @test length(rows) == 5
+        @test count(r -> r["start"] == "flat", rows) == 1
+        @test sort([r["seed"] for r in rows if r["start"] == "perturbed_neighbor"]) == [7, 8]
+        @test all(r -> !r["witness_available"], rows)
+        @test any(r -> r["classification"] == "unavailable_start", rows)
+        files = Dict(
+            r["trial"]=>read(joinpath(output, r["trial"], "result.toml")) for r in rows
+        )
+        again = run_transition_search(output; kw..., resume = true)
+        @test all(
+            r -> read(joinpath(output, r["trial"], "result.toml")) == files[r["trial"]],
+            again,
+        )
+        @test_throws ErrorException run_transition_search(
+            output;
+            kw...,
+            resume = true,
+            knee = 1.03,
+        )
+    end
+end

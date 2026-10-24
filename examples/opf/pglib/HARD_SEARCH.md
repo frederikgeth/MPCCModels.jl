@@ -237,3 +237,56 @@ The complete [160-row matrix](hard-cases/ieee118-capability-sweep.tsv) is also
 committed. A compressed local archive retains every request, raw point, solver
 log, witness, environment and captured source file at
 `search-results/ieee118-capability-2026-10-24.tar.gz`.
+
+## Ratio-one simultaneous transitions and generator-Q limit
+
+`transition_case(; knee=1.02, offset=0.0, qmax=0.35)` puts the three original
+IEEE 118 inverters at bus 95. Ratings, availability, hardware Q boxes and costs
+are unchanged. Each device has VV knots `knee + [-.06,-.02,0,.02]` with Q/S
+`[.4,0,0,-.4]`, and VW knots `knee + offset + [0,.015]` with P/S `[.8,.2]`.
+Thus zero offset coincides with the VV deadband/absorption knee, the start of
+VW curtailment and availability. VW remains an upper bound. All knots stay in
+the original voltage band. Separate hinges deliberately preserve six biactive
+pairs at the common knee; shared-knot encoding is a future matched comparison.
+
+Only original generator 45 at bus 100 has a network limit changed: its Q upper
+bound decreases from 1.55 pu to 0.20/0.35/0.50 pu (20/35/50 MVAr on the
+100-MVA base). Its lower bound stays −0.5 pu. No voltage is fixed to a knee and
+no generator output is fixed to its bound. Tightness must emerge from a solve.
+
+```sh
+julia --project=examples/opf/pglib examples/opf/pglib/search-hard-cases.jl \
+  --transitions --out=examples/opf/pglib/search-results/ieee118-transitions-2026-10-24 \
+  --offsets=-.0001,0,.0001 --qmaxes=.2,.35,.5 \
+  --seeds=20261024,20261025,20261026 --max-iter=500 --max-wall=60
+# Repeat the same command with --resume to recheck the plan and retain completed attempts.
+julia --project=examples/opf/pglib examples/opf/pglib/search-hard-cases.jl \
+  --transitions --summarize=examples/opf/pglib/search-results/ieee118-transitions-2026-10-24
+```
+
+The 54 raw trials use `ratio_one` throughout: nine inputs, with flat, verified
+relaxed-Q neighboring-case, verified same-case witness, and three seeded
+perturbations of the neighboring point. The three deterministic starts run once
+per input. All actual vectors are saved. Model construction and independent
+checks retain the existing recording/replay protocol and resource limits.
+Separately retained setup solves warm the solver before the raw matrix; reported
+outer times still include per-trial construction/checking.
+
+For each offset, a separate relaxed-Q homotopy point selects a sector by its
+hinge signs, even if homotopy failed. A separate exact-sector solve must pass all
+original feasibility checks at `1e-7` before becoming a neighboring start. Each
+tightened-Q input receives a separately retained sector witness. These witness
+solves neither modify a raw result nor establish MPCC optimality/stationarity.
+An unavailable witness remains explicitly unavailable, and a failed witness
+search never establishes infeasibility. Raw verified points can establish
+numerical feasibility independently of termination status.
+
+`summary.toml` retains every attempt and identifies superseded attempts without
+deleting them. It reports raw and witness activity separately: distances to the
+VV knee and VW onset, number of controllers simultaneously within `1e-6` pu of
+both, generator 45 Q and upper margin, and tightness at `1e-6` system-base pu.
+Activity alone is insufficient: the original feasibility flag and all six
+residual fields remain separate. At nonzero offsets the VV and VW knees are
+intentionally distinct; do not label them simultaneously active because they
+are nearby. `summary.tsv` is a compact status census. Replay individual raw
+requests using the existing `--replay=TRIAL --out=NEW_DIR` command.

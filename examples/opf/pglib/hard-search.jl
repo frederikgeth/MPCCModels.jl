@@ -427,4 +427,5 @@ function replay_trial(directory, output)
 end
 
 include("hard-search-driver.jl")
+include("transition-search.jl")
 end
