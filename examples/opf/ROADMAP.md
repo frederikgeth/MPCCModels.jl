@@ -23,10 +23,10 @@ these reference points are not optimality certificates.
 
 - [x] Review the package API, test style, and source hinge formulation.
 - [x] Create a dedicated development branch and record the implementation scope.
-- [ ] Add the AC OPF constructor, hinge equations, and documented variable ordering.
-- [ ] Add cases for reactive injection/absorption, deadband, saturation,
+- [x] Add the AC OPF constructor, hinge equations, and documented variable ordering.
+- [x] Add cases for reactive injection/absorption, deadband, saturation,
       volt-watt curtailment, and every curve breakpoint.
-- [ ] Verify physical feasibility, exact control values, complementarity pairs,
+- [x] Verify physical feasibility, exact control values, complementarity pairs,
       active bounds, and derivatives in the package test suite.
 - [ ] Add runnable example instructions and a documentation tutorial.
 - [ ] Run the complete tests, documentation checks, and optional CCOpt solves;
@@ -55,4 +55,10 @@ historical numerical results from the draft PR.
 
 ## Validation record
 
-Pending implementation.
+- The mixed linear/nonlinear OPF exposed an existing complementarity-Jacobian
+  structure bug. A separate prerequisite commit switches both sides to the full
+  underlying Jacobian and adds a regression in Float32 and Float64.
+- Initial focused validation: 636 OPF assertions and 118 MPCC API assertions pass
+  on Julia 1.12.6. All 12 Float64 reference points have maximum residual below
+  `4e-15`; these are feasibility checks, not solve-performance results.
+- Complete-suite, documentation, and all-case solver validation are pending.
