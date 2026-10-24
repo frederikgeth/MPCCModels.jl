@@ -570,5 +570,6 @@ include("diagnostics.jl")
 include("cases.jl")
 include("studies.jl")
 include("application-cases.jl")
+include("application-expansion.jl")
 
 end

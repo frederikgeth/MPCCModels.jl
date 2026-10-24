@@ -5,6 +5,7 @@ function _source_files()
             "transmission-opf.jl",
             "cases.jl",
             "application-cases.jl",
+            "application-expansion.jl",
             "studies.jl",
             "diagnostics.jl",
             "hard-search.jl",
@@ -15,6 +16,8 @@ function _source_files()
             "search-reductions.jl",
             "application-search.jl",
             "search-applications.jl",
+            "expansion-search.jl",
+            "search-expansions.jl",
             "search-hard-cases.jl",
             "Project.toml",
         )

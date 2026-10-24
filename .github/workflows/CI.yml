@@ -79,3 +79,5 @@ jobs:
         run: julia --project=examples/opf/pglib examples/opf/pglib/test-reductions.jl
       - name: Verify application families, matched policies and physical coverage
         run: julia --project=examples/opf/pglib examples/opf/pglib/test-applications.jl
+      - name: Verify application regime coverage and fixed-total fleet invariants
+        run: julia --project=examples/opf/pglib examples/opf/pglib/test-expansions.jl
