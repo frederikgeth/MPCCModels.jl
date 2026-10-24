@@ -271,6 +271,26 @@ separately from stalled, large-residual results.
   termination and feasibility, without treating a better point as proof against
   local optimality or a selected-sector solution as a full MPCC certificate.
 
+### Ratio-one simultaneous-transition and generator-Q search
+
+The next search fixes `ratio_one` (which passed the first capability matrix)
+and combines three colocated controllers with simultaneous VV deadband/absorption
+and VW onset transitions. Separate nearby VW offsets from exactly coincident
+knees. Tighten one original conventional-generator Q upper bound without changing
+its P bounds, costs or other network data. Preserve separate case snapshots and
+all raw starts/results; never infer infeasibility from unsuccessful homotopy.
+
+- [ ] Select feasible in-band knees and a local generator-Q limit; document
+      actual binding margins and knee distances at numerical witnesses.
+- [ ] Sweep Q upper limits and VW offsets with flat, neighboring, independently
+      perturbed and witness starts under fixed `ratio_one` budgets.
+- [ ] Retain exact-sector witnesses separately and verify all original physical
+      equations, curve laws, boxes and complementarity before registering them.
+- [ ] Curate reproducible difficult trials, matched recoveries and witnesses;
+      report achieved activity separately from requested activity.
+- [ ] Test case invariants, activity reporting and persistence; document results
+      and the next reduction/shared-hinge experiments.
+
 Validation: **105 harness/curated-record assertions** pass on Julia 1.10.12 and
 1.12.6. The existing **578 PGLib model assertions** pass on Julia 1.12.6, and
 Documenter builds with external link checks disabled locally. The archived
