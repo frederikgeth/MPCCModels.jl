@@ -228,3 +228,23 @@ ADNLPModel/MPCCModel design. Snapshots record shared encoding explicitly and
 continue loading historical separate-encoding snapshots without changing their
 serialized inputs. `transmission_start` transfers physical variables and rebuilds
 exact hinges when moving between encodings.
+
+## Application-driven families
+
+The [application catalog](APPLICATIONS.md) defines three parameterized IEEE 118
+families: high renewable output/light demand, limited reactive support, and
+constrained export. Each has nominal/elevated/severe physical operating points,
+heterogeneous plants at distinct buses, independent parameter overrides and
+matched dispatchable/VV/VW/both-policy variants. These balanced transmission
+study proxies have explicit physical scope and synthetic control settings.
+
+```julia
+data = application_case(:export_corridor; level=:severe)
+model = TransmissionOPFModel(data)
+```
+
+`search-applications.jl` characterizes the first nine combined-policy inputs
+against matched dispatchable baselines, preserving raw failures and separately
+verified witnesses. Reports keep achieved physical coverage and solver
+difficulty separate from intended mechanisms. Minimizing or explaining a solver
+failure is not a prerequisite for growing these families or adding larger grids.

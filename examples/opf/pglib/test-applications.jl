@@ -157,3 +157,82 @@ end
         @test haskey(first(values(summary["cases"])), "counterfactual_result")
     end
 end
+
+@testset "Archived application witnesses, challenges and physical comparisons" begin
+    fixture=TOML.parsefile(joinpath(@__DIR__, "hard-cases", "ieee118-applications.toml"))
+    bits(x) = bytes2hex(H.sha256(join(bitstring.(Float64.(x)), "\n")))
+    @test fixture["source_file_sha256"]==H._sha(
+        joinpath(@__DIR__, "data", fixture["source_file"]),
+    )
+    @test length(fixture["cases"])==9
+    @test fixture["classifications"]==Dict("success"=>26, "solver_failure"=>10)
+    function check_point(data, row)
+        @test bits(row["start"])==row["start_bits_sha256"]
+        @test bits(row["x"])==row["point_bits_sha256"]
+        model=T.TransmissionOPFModel(data)
+        metrics=H._metrics(model, data, row["x"], row["tolerance"])
+        @test metrics["physically_feasible"]==row["physically_feasible"]
+        @test metrics["objective"]≈row["objective"] atol=1e-5
+        for (key, value) in row["residuals"]
+            @test metrics["residuals"][key]≈value atol=1e-9
+        end
+        return metrics
+    end
+    for row in fixture["cases"]
+        family, level=Symbol(row["family"]), Symbol(row["level"])
+        data=T.application_case(family; level)
+        @test bytes2hex(H.sha256(H._toml(H._snapshot(data))))==row["input_snapshot_sha256"]
+        witness=row["witness"]
+        @test maximum(values(check_point(data, witness)["residuals"]))<=1e-7
+        cv=H._plain(T.application_coverage(data, witness["x"]))
+        @test cv==row["coverage"]
+        baseline=T.application_case(family; level, laws = :dispatchable)
+        @test check_point(baseline, row["counterfactual"])["physically_feasible"]
+        @test H._plain(T.application_coverage(baseline, row["counterfactual"]["x"]))==row["counterfactual_coverage"]
+    end
+    for row in fixture["trials"]
+        data=T.application_case(Symbol(row["family"]); level = Symbol(row["level"]))
+        check_point(data, row)
+    end
+    find_case(f, l) = only(filter(r->r["family"]==f && r["level"]==l, fixture["cases"]))
+    surplus=find_case("renewable_surplus", "severe")["coverage"]
+    @test length(surplus["capability_binding"])==6
+    @test surplus["curtailed_mw"]>0.1
+    reactive=find_case("reactive_support", "severe")["coverage"]
+    @test length(reactive["q_injecting"])>=1
+    @test length(reactive["network_tight"]["generator_q_upper"])>20
+    export_case=find_case("export_corridor", "severe")["coverage"]
+    @test Set([25, 29]) ⊆ union(
+        Set(export_case["network_tight"]["thermal_from"]),
+        Set(export_case["network_tight"]["thermal_to"]),
+    )
+    @test export_case["curtailed_mw"]>300
+    @test sum(values(find_case("export_corridor", "elevated")["coverage"]["vv_regions"]))==3
+    sensitivities=fixture["sensitivities"]
+    @test length(sensitivities)==6
+    for row in sensitivities
+        overrides=(; (Symbol(k)=>v for (k, v) in row["override"])...)
+        data=T.application_case(
+            Symbol(row["family"]);
+            level = :severe,
+            parameters = overrides,
+        )
+        @test row["verified"]
+        @test check_point(data, row["record"])["physically_feasible"]
+        @test H._plain(T.application_coverage(data, row["record"]["x"]))==row["coverage"]
+    end
+    for family in string.(T.APPLICATION_FAMILIES)
+        pair=filter(r->r["family"]==family, sensitivities)
+        reference=only(filter(r->r["label"]=="reference", pair))
+        changed=only(filter(r->r["label"]=="modified", pair))
+        @test reference["record"]["profile"]==changed["record"]["profile"]
+        @test reference["record"]["sector_mask"]==changed["record"]["sector_mask"]
+        @test reference["record"]["start"]==changed["record"]["start"]
+        @test changed["coverage"]["curtailed_mw"]<reference["coverage"]["curtailed_mw"]
+        if family!="renewable_surplus"
+            @test changed["objective"]<reference["objective"]
+        end
+    end
+    lines=readlines(joinpath(@__DIR__, "hard-cases", "ieee118-applications-sweep.tsv"))
+    @test length(lines)==37
+end

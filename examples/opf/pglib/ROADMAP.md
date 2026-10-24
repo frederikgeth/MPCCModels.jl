@@ -59,9 +59,9 @@ useful infrastructure and an explicitly labelled formulation/degeneracy family.
 - [x] Add three application cards and parameterized IEEE 118 constructors, each
       with three physical operating levels and heterogeneous plants.
 - [x] Add matched policy variants, input/derivative tests and application metadata.
-- [ ] Run the first nine both-law inputs with multiple starts/settings, matched
+- [x] Run the first nine both-law inputs with multiple starts/settings, matched
       dispatchable baselines, separate witnesses and complete failure retention.
-- [ ] Report achieved activity/curve coverage, measured difficulty and gaps;
+- [x] Report achieved activity/curve coverage, measured difficulty and gaps;
       curate physically verified records and keep unsuccessful searches intact.
 - [ ] Extend application-specific plateau/ramp coverage and population/placement
       variations, then larger networks, using the same building blocks.
@@ -433,3 +433,65 @@ archives are `search-results/ieee118-reductions-2026-10-25.tar.gz` (SHA-256
 `d1e68a14d76c1c02a1afae24e26a8d6c46a0169d12e57ea9d4f65e7b448f7387`)
 and `search-results/ieee118-reduction-seeds-2026-10-25.tar.gz` (SHA-256
 `0ba001433684b3cf24ac2d175ddd608558ad1226f1f166b206a4dfe1237c4e0b`).
+
+## First application catalog: implementation and results
+
+The current deliverable is documented in [APPLICATIONS.md](APPLICATIONS.md).
+Three IEEE 118 families each have nominal/elevated/severe physical operating
+points, heterogeneous plants at distinct buses and independently overridable
+parameters. Matched dispatchable/VV/VW/both constructors retain identical
+hardware, availability and network inputs. Nine reference points and nine
+matched dispatchable NLP points pass original physical checks. The combined-law
+matrix has **26 physical passes and 10 iteration-limit exits** across 36 raw
+trials (two profiles × flat/witness starts). All failed inputs have verified
+feasible references; the elevated/severe reactive-support inputs challenge both
+profiles from both starts. Severity labels remain independent of solver outcomes.
+
+Measured application coverage includes absorption, injection, deadbands, a knee,
+VW upper plateaus/ramp positions, capability circles, conventional Q limits,
+voltage bounds and both thermal ends. Full renewable availability activates all
+six inverter S circles. Reactive support derating produces 14/25/40 tight
+conventional Q upper limits at the selected references. The export family has
+0/92.584/394.860 MW reference curtailment, with one then both boundary circuits
+binding. These are measured reference points, not global/full-MPCC optima.
+
+Six paired exact-sector local comparisons vary one physical parameter at a time
+from the severe references. Availability/S 1.00→.99 removes the small capability-
+related curtailment while lowering available production; Q-range factor .20→.30
+reduces curtailment 354.549→257.464 MW; corridor factor .70→.80 reduces curtailment
+394.860→359.044 MW. Settings, sectors and physical starts match within each pair.
+They support application interpretation, not solver debugging or global
+sensitivity certificates. Raw homotopy results remain unmodified.
+
+The [portable application records](hard-cases/README.md#application-catalog-records)
+include all nine witnesses/counterfactuals, eight raw examples, all six local
+comparisons, the nine-row coverage catalog and the complete 36-row outcome table.
+Complete raw snapshots, requests, starts, points and solver/environment records
+remain in the local ignored search directories.
+
+### Next application-development priorities
+
+- [ ] Add physically specified operating/profile variants covering both VV outer
+      plateaus, the VW lower plateau and ramp strata away from availability
+      crossovers. Record unreachable or unachieved regimes without relabelling them.
+- [ ] Extend heterogeneous fleet count and placement studies on the application
+      inputs, independently varying installed capacity, population and geography.
+- [ ] Characterize the already available VV-only and VW-only matched variants;
+      keep operating effects and measured difficulty separate.
+- [ ] Add pinned RTS 24/IEEE 300 data and independent canonical validation, then
+      map application cards to those networks. Solver diagnosis is not a gate.
+- [ ] Keep the earlier coincident-knee/redundancy cases as an explicit stress
+      family alongside the application families, with their provenance intact.
+
+Validation: **1,320 application/model/archived-record assertions** pass on Julia
+1.10.12 and 1.12.6. Existing **419 hard-search**, **585 reduction** and **578
+transmission-model** assertions pass on Julia 1.12.6. Documenter builds locally
+with external link checks disabled. Resume preserves all **235 raw,
+counterfactual and witness files** byte for byte. Remote CI remains pending.
+
+The elevated reactive-support ratio_one/flat failure replays at 500 iterations
+with identical returned vector and original residuals. Complete local archives:
+`search-results/ieee118-applications-2026-10-25.tar.gz` (SHA-256
+`fc6e7fc25db7b14d169756652b8fe2b2b3f9b323b16b305aad46953ddfea24ff`)
+and `search-results/ieee118-application-sensitivities-2026-10-25.tar.gz` (SHA-256
+`da22d3ed8d8e6456755296a552ebd0b36daae4bb268e71bdb223454681a0ace3`).

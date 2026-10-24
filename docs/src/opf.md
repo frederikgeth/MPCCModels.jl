@@ -270,3 +270,31 @@ physical feasible set. Physical-point transfer gives matched starts across
 representations. Read-only iteration traces retain both solver residuals and
 independent original-curve errors, with constructed witnesses labelled separately
 from solver results.
+
+## Application-driven transmission families
+
+The optional application catalog adds `application_case`, `application_card`,
+`application_parameters`, `application_cases` and `application_coverage`.
+The first IEEE 118 families represent high renewable output with lighter demand,
+limited conventional reactive support, and renewable export through a constrained
+corridor. They use heterogeneous multi-plant controls, nominal/elevated/severe
+operating points, parameter overrides and matched dispatchable/VV/VW/both laws.
+The physical labels do not predict solver difficulty. PGLib topology and source
+files are retained; explicit load, capability and corridor overlays are recorded.
+
+```julia
+include("../examples/opf/pglib/transmission-opf.jl")
+using .TransmissionOPF
+
+data = application_case(:reactive_support; level=:severe)
+model = TransmissionOPFModel(data)
+```
+
+These are synthetic balanced steady-state transmission/aggregate-plant proxies,
+with a documented scope rather than prescribed inverter settings or calibrated
+feeders. The optional `search-applications.jl` runner retains raw outcomes,
+matched dispatchable baselines, verified numerical witnesses and measured curve/
+bound coverage. A feasible challenge case can enter the catalog even when CCOpt
+fails; failed witness searches remain unresolved. Application definitions,
+physical parameter tables and the measurement protocol are documented in
+`examples/opf/pglib/APPLICATIONS.md`.

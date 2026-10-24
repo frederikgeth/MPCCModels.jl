@@ -113,3 +113,38 @@ environment snapshots remain in the two local ignored directories
 `../search-results/ieee118-reductions-2026-10-25/` and
 `../search-results/ieee118-reduction-seeds-2026-10-25/`, with sibling `.tar.gz`
 archives. Source PGLib attribution and license remain unchanged.
+
+## Application catalog records
+
+`ieee118-applications.toml` preserves nine physically verified application
+reference points, nine matched dispatchable NLP points, eight representative raw
+trials and six paired local physical-parameter comparisons. Inputs rebuild with
+`TransmissionOPF.application_case(Symbol(row["family"]);
+level=Symbol(row["level"]))`; sensitivity rows additionally supply their recorded
+physical overrides. Every point has a Float64 bit hash and original residuals.
+Source/input/request/environment hashes and actual starts/solver settings are
+retained. Tests evaluate the archived numerical evidence without requiring
+future CCOpt versions to reproduce failures.
+
+These are application inputs with a spread of difficulty, not reductions of one
+solver pathology. The nominal/elevated/severe labels describe physical parameters.
+The elevated/severe reactive-support inputs fail both tested profiles from both
+starts despite verified witnesses; renewable-surplus inputs pass throughout.
+
+```julia
+receipt = TOML.parsefile("examples/opf/pglib/hard-cases/ieee118-applications.toml")
+trial = only(filter(t -> t["family"] == "reactive_support" &&
+    t["level"] == "severe" && t["profile"]["name"] == "ratio_one", receipt["trials"]))
+data = HardCaseSearch.TransmissionOPF.application_case(:reactive_support; level=:severe)
+run_trial(data, trial["start"], trial["profile"], "NEW_APPLICATION_REPLAY_DIRECTORY";
+    start_label=trial["start_label"])
+```
+
+`ieee118-application-catalog.tsv` records the nine measured reference operating
+points. `ieee118-applications-sweep.tsv` retains every raw combined-policy trial,
+including failures. Complete artifacts and sibling `.tar.gz` archives remain in
+local ignored `../search-results/ieee118-applications-2026-10-25/` and
+`../search-results/ieee118-application-sensitivities-2026-10-25/`.
+The [application guide](../APPLICATIONS.md) defines scope, parameters, intended
+versus observed effects, paired comparisons and remaining coverage gaps. Original
+PGLib attribution and license remain unchanged.

@@ -127,3 +127,83 @@ points, solver options, provenance and source/environment hashes follow the
 [hard-search recorder](HARD_SEARCH.md). Constructor, matched-input, sparse
 Jacobian/Hessian, snapshot and failure-retention tests run independently of
 whether CCOpt happens to find a hard input on a future release.
+
+## First measured catalog (2026-10-25)
+
+All nine inputs have verified numerical witnesses at `1e-7`; all nine matched
+dispatchable NLP counterfactuals pass original physical checks. The 36 raw
+combined-policy trials give **26 physical passes and 10 iteration-limit exits**,
+with no accuracy-gap classifications, exceptions or unavailable starts.
+The table describes the protocol's selected feasible reference points; they
+are not guaranteed global or full-MPCC optima and need not have unique activity.
+
+| Family | Level | Reference curtailment (MW) | Observed reference mechanisms | Raw passes / iteration limits |
+| --- | --- | --- | --- | --- |
+| Renewable surplus | nominal | ≈0 | Six absorption ramps; availability/VW crossovers | 4 / 0 |
+| Renewable surplus | elevated | ≈0 | Six absorption ramps; one original thermal end tight | 4 / 0 |
+| Renewable surplus | severe | 0.528 | All six inverter S circles tight; an absorption knee | 4 / 0 |
+| Reactive support | nominal | ≈0 | Two injecting plants, deadbands; 14 conventional Q upper limits tight | 3 / 1 |
+| Reactive support | elevated | ≈0 | Three injecting plants; 25 conventional Q upper limits tight | 0 / 4 |
+| Reactive support | severe | 354.549 | Injection/deadband/absorption/knee mixture; 40 Q upper limits and thermal limits tight | 0 / 4 |
+| Export corridor | nominal | ≈0 | Three absorption ramps; boundary ratings slack | 4 / 0 |
+| Export corridor | elevated | 92.584 | Injection/deadband/absorption across three plants; branch 25 boundary tight | 4 / 0 |
+| Export corridor | severe | 394.860 | Both boundary circuits tight; curtailment with slack VW caps | 3 / 1 |
+
+Physical severity is deliberately separate from measured difficulty: every
+renewable-surplus trial passes, while elevated/severe reactive-support cases
+challenge both solver profiles from flat and verified-witness starts. The
+nominal reactive case and severe export case fail only for ratio_one/flat in
+this run. Every failed input has a verified feasible point. The original PGLib
+network contains other active limits; these are coupled applications, not
+claims that a single limit alone explains every outcome.
+
+The export dispatchable counterfactuals also curtail about 87.112 MW (elevated)
+and 392.107 MW (severe), compared with 92.584/394.860 MW for the selected
+controlled references. Those are local numerical comparisons with matched
+hardware/network, not global optimality gaps.
+
+### One-parameter physical comparisons
+
+Six separately recorded exact-sector NLP solves compare each severe reference
+with one changed physical parameter. A common source witness selects the sector;
+reference and modified solves use identical physical starts, sector masks and
+settings. All six points pass original checks at `1e-7`. These are local
+selected-sector comparisons, not additional raw CCOpt homotopy trials.
+
+| Physical change | Reference curtailment (MW) | Modified curtailment (MW) | Interpretation of measured response |
+| --- | --- | --- | --- |
+| Renewable availability/S 1.00 → .99 | 0.528 | ≈0 | Restores reactive headroom by reducing availability by 12 MW; actual injection decreases and conventional cost rises |
+| Conventional Q-range factor .20 → .30 | 354.549 | 257.464 | Additional conventional reactive support reduces local curtailment and cost |
+| Export boundary rating factor .70 → .80 | 394.860 | 359.044 | Additional corridor capacity increases local renewable dispatch and reduces cost |
+
+The catalog covers injection/absorption ramp interiors, deadbands, a VV knee,
+VW upper plateaus/ramp positions, inverter capability circles, conventional
+P/Q bounds, voltage bounds and thermal limits. The selected application
+witnesses do **not** yet cover both VV outer plateaus, the VW lower plateau,
+or systematic ramp-fraction strata. Those are explicit next application-design
+targets; they do not block retaining these meaningful easy and challenging
+instances. VV-only/VW-only constructors are validated as matched inputs; the
+first recorded characterization concentrates on combined and dispatchable laws.
+
+Portable points, metadata and numerical checks are in
+[the application receipt](hard-cases/README.md#application-catalog-records).
+`ieee118-application-catalog.tsv` holds the nine physical reference rows;
+`ieee118-applications-sweep.tsv` holds all 36 raw outcomes. Complete raw inputs,
+starts, points, counterfactuals, witnesses and source/environment snapshots are
+retained locally under `search-results/ieee118-applications-2026-10-25/`.
+Paired local comparisons are retained separately under
+`search-results/ieee118-application-sensitivities-2026-10-25/`.
+
+Validation: **1,320 application/model/archived-record assertions** pass on Julia
+1.10.12 and 1.12.6; existing 419 hard-search, 585 reduction and 578 transmission-
+model assertions pass on Julia 1.12.6. Documenter builds locally with external
+link checking disabled. Resume preserves all **235 raw/counterfactual/witness
+files** byte for byte. Replaying reactive-support/elevated/ratio_one/flat again
+reaches 500 iterations with an identical returned vector and physical residuals.
+
+Complete local archives, excluded from Git:
+
+- `search-results/ieee118-applications-2026-10-25.tar.gz`, SHA-256
+  `fc6e7fc25db7b14d169756652b8fe2b2b3f9b323b16b305aad46953ddfea24ff`.
+- `search-results/ieee118-application-sensitivities-2026-10-25.tar.gz`, SHA-256
+  `da22d3ed8d8e6456755296a552ebd0b36daae4bb268e71bdb223454681a0ace3`.
