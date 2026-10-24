@@ -575,5 +575,6 @@ include("cases.jl")
 include("studies.jl")
 include("application-cases.jl")
 include("application-expansion.jl")
+include("application-policy-matrix.jl")
 
 end

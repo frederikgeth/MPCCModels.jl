@@ -3,7 +3,7 @@ using .HardCaseSearch
 
 function main_expansions(args)
     "--help" in args && return println(
-        "search-expansions.jl --out=DIR [--kind=coverage|fleet] [--profiles=current,ratio_one] [--max-iter=500] [--max-wall=60] [--resume] | --summarize=DIR",
+        "search-expansions.jl --out=DIR [--network=ieee118|ieee300] [--kind=coverage|fleet|reserve|policy_matrix] [--profiles=current,ratio_one] [--references=FILE] [--max-iter=500] [--max-wall=60] [--resume] | --summarize=DIR",
     )
     values=Dict{String,String}()
     resume=false
@@ -24,10 +24,14 @@ function main_expansions(args)
         return summarize_expansions(values["summarize"])
     end
     haskey(values, "out") || throw(ArgumentError("--out is required"))
-    all(k->k in ("out", "kind", "profiles", "max-iter", "max-wall"), keys(values)) ||
-        throw(ArgumentError("unknown option"))
+    all(
+        k->k in
+           ("out", "network", "kind", "profiles", "max-iter", "max-wall", "references"),
+        keys(values),
+    ) || throw(ArgumentError("unknown option"))
     kind=Symbol(get(values, "kind", "coverage"))
     kwargs=Dict{Symbol,Any}()
+    haskey(values, "references") && (kwargs[:reference_receipt]=values["references"])
     haskey(values, "profiles") &&
         (kwargs[:profiles]=Symbol.(split(values["profiles"], ',')))
     haskey(values, "max-iter") && (kwargs[:max_iter]=parse(Int, values["max-iter"]))
@@ -35,7 +39,10 @@ function main_expansions(args)
         (kwargs[:max_wall_time]=parse(Float64, values["max-wall"]))
     return run_expansion_search(
         values["out"];
-        specs = HardCaseSearch.TransmissionOPF.application_expansion_specs(kind),
+        specs = HardCaseSearch.TransmissionOPF.application_expansion_specs(
+            kind;
+            network = Symbol(get(values, "network", "ieee118")),
+        ),
         kwargs...,
         resume,
     )

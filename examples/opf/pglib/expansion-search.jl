@@ -3,26 +3,42 @@ export run_expansion_search, summarize_expansions
 
 const EXPANSION_SOURCE=joinpath(HERE, "hard-cases", "ieee118-applications.toml")
 function _expansion_key(s)
-    return s.kind==:coverage ? "policy-$(s.policy)" :
-           "fleet-$(s.family)-$(s.level)-$(s.count)-$(s.placement)"
+    key=s.kind==:coverage ? "policy-$(s.policy)" :
+        s.kind==:reserve ? "reserve-$(s.reserve)" :
+        "fleet-$(s.family)-$(s.level)-$(s.count)-$(s.placement)"
+    network=get(s, :network, :ieee118)
+    return network==:ieee118 ? key : "$(network)-$(key)"
 end
+function _expansion_source_file(network)
+    network in (:ieee118, :ieee300) || throw(ArgumentError("unsupported source network"))
+    return network==:ieee118 ? EXPANSION_SOURCE :
+           joinpath(HERE, "hard-cases", "ieee300-applications.toml")
+end
+function _expansion_coverage(data, x)
+    return data.network==:ieee300 ? application_policy_coverage(data, x) :
+           application_coverage(data, x)
+end
+
 function _expansion_source(data, spec)
     family=Symbol(data.provenance.application_family)
     level=Symbol(data.provenance.operating_level)
-    receipt=TOML.parsefile(EXPANSION_SOURCE)
+    source_file=_expansion_source_file(data.network)
+    receipt=TOML.parsefile(source_file)
     row=only(
         filter(
             r->r["family"]==string(family) && r["level"]==string(level),
             receipt["cases"],
         ),
     )
-    base=application_case(family; level)
+    base=application_case(family; network = data.network, level)
+    _digest(_snapshot(base))==row["input_snapshot_sha256"] ||
+        error("source input identity changed")
     x=row["witness"]["x"]
     maximum(values(transmission_residuals(TransmissionOPFModel(base), base, x)))<=1e-7 ||
         error("source witness no longer verifies")
-    transferred=spec.kind==:coverage ? transmission_start(data, base, x) :
-                application_fleet_start(data, base, x)
-    return (; point = transferred, source_sha256 = _sha(EXPANSION_SOURCE), family, level)
+    transferred=spec.kind==:fleet ? application_fleet_start(data, base, x) :
+                transmission_start(data, base, x)
+    return (; point = transferred, source_sha256 = _sha(source_file), family, level)
 end
 
 function _save_expansion(directory, spec; laws = :both, hinge_encoding = :separate)
@@ -61,34 +77,67 @@ function _source_point_record(directory, case, source; tolerance)
     return path
 end
 
+function _prepared_point(directory, case, receipt; tolerance)
+    rows=TOML.parsefile(receipt)["cases"]
+    matches=filter(r->r["case_key"]==case.key, rows)
+    length(matches)==1 || error("prepared reference missing or duplicated")
+    row=only(matches)
+    row["case_sha256"]==_sha(case.path) || error("prepared reference input mismatch")
+    row["point_sha256"]==_digest(Dict("x"=>row["x"])) ||
+        error("prepared reference point mismatch")
+    metrics=_metrics(TransmissionOPFModel(case.data), case.data, row["x"], tolerance)
+    metrics["physically_feasible"] || error("prepared reference is not original-feasible")
+    record=merge(
+        copy(row),
+        Dict(
+            "method"=>"prevalidated_solver_point",
+            "source_receipt_sha256"=>_sha(receipt),
+            "metrics"=>metrics,
+            "tolerance"=>tolerance,
+        ),
+    )
+    path=joinpath(directory, "cases", case.key, "prepared-point.toml")
+    isfile(path) ? (TOML.parsefile(path)==record || error("prepared point changed")) :
+    _write(path, record)
+    return path
+end
+
 function _expansion_witness(directory, case; tolerance)
     witness=_witness_reference(directory, case; tolerance)
     !isnothing(witness) &&
         return (point = witness.point, path = witness.trial, kind = "solver_point")
-    file=joinpath(directory, "cases", case.key, "source-point.toml")
-    isfile(file) || return nothing
-    record=TOML.parsefile(file)
-    record["case_sha256"]==_sha(case.path) || error("source point belongs to another input")
-    record["point_sha256"]==_digest(Dict("x"=>record["x"])) ||
-        error("source point checksum mismatch")
-    metrics=_metrics(TransmissionOPFModel(case.data), case.data, record["x"], tolerance)
-    return metrics["physically_feasible"] ?
-           (point = Float64.(record["x"]), path = file, kind = "physical_transfer") :
-           nothing
+    for (name, kind) in (
+        ("prepared-point.toml", "prevalidated_solver_point"),
+        ("source-point.toml", "physical_transfer"),
+    )
+        file=joinpath(directory, "cases", case.key, name)
+        isfile(file) || continue
+        record=TOML.parsefile(file)
+        record["case_sha256"]==_sha(case.path) ||
+            error("reference point belongs to another input")
+        record["point_sha256"]==_digest(Dict("x"=>record["x"])) ||
+            error("reference point checksum mismatch")
+        metrics=_metrics(TransmissionOPFModel(case.data), case.data, record["x"], tolerance)
+        metrics["physically_feasible"] &&
+            return (point = Float64.(record["x"]), path = file, kind = kind)
+    end
+    return nothing
 end
 
 """Record application coverage/population studies with raw results and explicit references.
 
-Every input has an operating reference attempt selected by the transferred
-voltage of its archived application point, and a separate returned-iterate sector
-attempt when available. Neither uses intended coverage labels. All verified
-references are reported. Raw homotopies and dispatchable counterfactuals are never
+Without a prepared receipt, operating reference attempts use the transferred
+voltage of an archived application point, followed by actual returned-iterate
+sectors. Neither uses intended coverage labels. Prepared points are hash-checked
+and re-evaluated against original inputs before any raw solve; their provenance
+and numerical evidence are retained. All verified references are reported. Raw homotopies and dispatchable counterfactuals are never
 polished or replaced. No unsuccessful reference is an infeasibility certificate.
 """
 function run_expansion_search(
     directory;
     specs = application_expansion_specs(:coverage),
     profiles = [:current, :ratio_one],
+    reference_receipt = nothing,
     hinge_encoding = :separate,
     max_iter = 500,
     max_wall_time = 60.0,
@@ -108,6 +157,9 @@ function run_expansion_search(
     for spec in specs
         application_expansion_case(spec; hinge_encoding)
     end
+    networks=unique(application_expansion_case(s).network for s in specs)
+    length(networks)==1 || throw(ArgumentError("one network per expansion run"))
+    source_file=_expansion_source_file(only(networks))
     settings=[solver_profile(p; max_iter, max_wall_time) for p in profiles]
     reference_profile=solver_profile(:current; max_iter, max_wall_time)
     environment=_environment()
@@ -121,9 +173,11 @@ function run_expansion_search(
         "trace_every"=>trace_every,
         "tolerance"=>tolerance,
         "witness_tolerance"=>witness_tolerance,
-        "source_witness_sha256"=>_sha(EXPANSION_SOURCE),
+        "source_witness_sha256"=>_sha(source_file),
         "environment"=>environment,
     )
+    !isnothing(reference_receipt) &&
+        (plan["prepared_reference_sha256"]=_sha(reference_receipt))
     directory=abspath(directory)
     if ispath(directory)
         resume ||
@@ -135,7 +189,17 @@ function run_expansion_search(
         _write(joinpath(directory, "plan.toml"), plan)
     end
     _capture_environment(directory, _environment())
-    cp(EXPANSION_SOURCE, joinpath(directory, "source-reference.toml"); force = true)
+    cp(source_file, joinpath(directory, "source-reference.toml"); force = true)
+    if !isnothing(reference_receipt)
+        saved=joinpath(directory, "prepared-references.toml")
+        isfile(saved) ?
+        (_sha(saved)==_sha(reference_receipt) || error("prepared receipt changed")) :
+        cp(reference_receipt, saved)
+        for spec in specs
+            case=_save_expansion(directory, spec; hinge_encoding)
+            _prepared_point(directory, case, saved; tolerance = witness_tolerance)
+        end
+    end
     warm=_save_expansion(directory, first(specs); hinge_encoding)
     for c in settings
         _ensure_trial(
@@ -202,47 +266,49 @@ function run_expansion_search(
         _source_point_record(directory, case, source; tolerance = witness_tolerance)
         l=transmission_layout(case.data)
         mask=Vector{Bool}(source.point[l.r] .> source.point[l.s])
-        operating=_ensure_trial(
-            case.data,
-            source.point,
-            reference_profile,
-            joinpath(directory, "references"),
-            "$(case.key)-operating";
-            resume = true,
-            role = "operating_reference",
-            start_label = "archived_application",
-            case_file = case.path,
-            tolerance = witness_tolerance,
-            mask,
-            provenance = Dict(
-                "source_receipt_sha256"=>source.source_sha256,
-                "source_family"=>string(source.family),
-                "source_level"=>string(source.level),
-            ),
-        )
-        push!(refs, operating)
-        for (i, path) in enumerate(flats)
-            saved=read_trial(path)
-            get(saved.result, "has_solution", false) || continue
-            x=_point(path)
-            all(isfinite, x) || continue
-            mask=Vector{Bool}(x[l.r] .> x[l.s])
-            returned=_ensure_trial(
+        if isnothing(reference_receipt)
+            operating=_ensure_trial(
                 case.data,
-                x,
+                source.point,
                 reference_profile,
                 joinpath(directory, "references"),
-                "$(case.key)-returned-$(settings[i].name)";
+                "$(case.key)-operating";
                 resume = true,
-                role = "returned_reference",
-                start_label = "raw_iterate",
+                role = "operating_reference",
+                start_label = "archived_application",
                 case_file = case.path,
                 tolerance = witness_tolerance,
                 mask,
-                provenance = Dict("selected_from"=>relpath(path, directory)),
+                provenance = Dict(
+                    "source_receipt_sha256"=>source.source_sha256,
+                    "source_family"=>string(source.family),
+                    "source_level"=>string(source.level),
+                ),
             )
-            push!(refs, returned)
-            !isnothing(verified_point(returned; tolerance = witness_tolerance)) && break
+            push!(refs, operating)
+            for (i, path) in enumerate(flats)
+                saved=read_trial(path)
+                get(saved.result, "has_solution", false) || continue
+                x=_point(path)
+                all(isfinite, x) || continue
+                mask=Vector{Bool}(x[l.r] .> x[l.s])
+                returned=_ensure_trial(
+                    case.data,
+                    x,
+                    reference_profile,
+                    joinpath(directory, "references"),
+                    "$(case.key)-returned-$(settings[i].name)";
+                    resume = true,
+                    role = "returned_reference",
+                    start_label = "raw_iterate",
+                    case_file = case.path,
+                    tolerance = witness_tolerance,
+                    mask,
+                    provenance = Dict("selected_from"=>relpath(path, directory)),
+                )
+                push!(refs, returned)
+                !isnothing(verified_point(returned; tolerance = witness_tolerance)) && break
+            end
         end
         witness=_expansion_witness(directory, case; tolerance = witness_tolerance)
         if isnothing(witness)
@@ -355,7 +421,7 @@ function summarize_expansions(directory)
             row["residuals"]=get(r, "residuals", Dict())
             row["objective"]=get(r, "objective", NaN)
             x=_point(path)
-            all(isfinite, x) && (row["coverage"]=_plain(application_coverage(data, x)))
+            all(isfinite, x) && (row["coverage"]=_plain(_expansion_coverage(data, x)))
         end
         if !haskey(cases, key)
             info=Dict{String,Any}(
@@ -364,6 +430,8 @@ function summarize_expansions(directory)
                 "witness_available"=>!isnothing(witness),
                 "references"=>Dict[],
             )
+            prepared=joinpath(directory, "cases", key, "prepared-point.toml")
+            isfile(prepared) && (info["prepared_reference"]=TOML.parsefile(prepared))
             refsfile=joinpath(directory, "cases", key, "references.toml")
             if isfile(refsfile)
                 for ref in TOML.parsefile(refsfile)["trials"]
@@ -377,14 +445,14 @@ function summarize_expansions(directory)
                         "role"=>read_trial(joinpath(directory, ref)).request["role"],
                     )
                     !isnothing(point) &&
-                        (item["coverage"]=_plain(application_coverage(data, point)))
+                        (item["coverage"]=_plain(_expansion_coverage(data, point)))
                     push!(info["references"], item)
                 end
             end
             if !isnothing(witness)
                 info["witness_reference"]=relpath(witness.path, directory)
                 info["reference_kind"]=witness.kind
-                info["witness_coverage"]=_plain(application_coverage(data, witness.point))
+                info["witness_coverage"]=_plain(_expansion_coverage(data, witness.point))
             end
             cases[key]=info
         end

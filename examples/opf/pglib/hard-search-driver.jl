@@ -6,6 +6,7 @@ function _source_files()
             "cases.jl",
             "application-cases.jl",
             "application-expansion.jl",
+            "application-policy-matrix.jl",
             "studies.jl",
             "diagnostics.jl",
             "hard-search.jl",

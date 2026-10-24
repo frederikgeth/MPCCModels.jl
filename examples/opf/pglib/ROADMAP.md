@@ -651,3 +651,33 @@ suite passes **20 assertions**; existing **578 model**, **235 solved-case**,
 **419 hard-search**, **1,320 application** and **2,648 expansion** assertions pass
 on Julia 1.12.6. Documenter builds locally with external link checking disabled.
 Remote CI and publication of the full local archives remain pending.
+
+## IEEE 300 operating-policy matrix
+
+Build from the seven verified IEEE 300 operating inputs. Keep matched hardware,
+availability and network records across dispatchable/VV-only/VW-only/both-law
+variants, and retain the IEEE 118 definitions and archived snapshot identities.
+Intended regimes never select a witness sector or fix a bus voltage.
+
+| Axis | Initial inputs | Physical interpretation / required measured evidence |
+| --- | --- | --- |
+| Strict VW | Gentle/firm/steep caps on elevated surplus | Interconnection export ceilings with different voltage gains; require P below availability and slack S circle at a binding VW cap |
+| VV saturation | Injection service on nominal reactive support; absorption service on elevated surplus | Bounded reactive participation with explicit setpoints; require strict outer-plateau positions at checked feasible references |
+| VW lower plateau | Early backstop on a verified export input | Earlier voltage-based export intervention; distinguish plateau position from independent cap limitation |
+| Q-upper reserve | Three one-sided contractions of nominal reactive Q intervals | Hold every Q lower bound, P bound/cost, plant and network input fixed; interpolate only Q upper bounds toward original lower bounds, including positive-Q-minimum units |
+
+- [x] Implement network-aware policy cards, one-sided reserve recipes and strict
+      limit classification without changing legacy reports by default.
+- [x] Validate authoritative overlays, policy matching, source identity, derivative
+      products and recorder behavior; freeze candidate definitions in a commit.
+- [ ] Validate independent numerical references and achieved regimes; retain
+      unsuccessful candidates and reference attempts explicitly.
+- [ ] Freeze the accepted matrix and run both CCOpt profiles from flat/checked
+      reference starts, with matched dispatchable baselines and raw failures intact.
+- [ ] Curate portable numerical evidence, measured physical/solver matrices,
+      remaining gaps and the next application cases; update CI, docs and roadmap.
+
+A missing reference is unresolved feasibility, and a tight VW cap coincident with
+availability is not strict VW curtailment. No full-MPCC stationarity or global
+optimality is asserted by selected-sector local references. Explaining CCOpt
+failures is not a prerequisite for admitting physically meaningful feasible cases.

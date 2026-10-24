@@ -20,7 +20,9 @@ Voltage knots are relative to the original plant-specific profile shifts. Reacti
 service limits and active export caps are policy settings, inside the unchanged
 hardware boxes. No setting is a prescribed grid-code value.
 """
-function application_policy_card(policy::Symbol)
+function application_policy_card(policy::Symbol; network::Symbol = :ieee118)
+    network==:ieee300 && return _ieee300_policy_card(policy)
+    network==:ieee118 || throw(ArgumentError("unsupported policy network"))
     policy in APPLICATION_POLICIES || throw(ArgumentError("unknown application policy"))
     defaults=(
         policy = policy,
@@ -96,10 +98,20 @@ function application_policy_card(policy::Symbol)
     return merge(defaults, specific)
 end
 
-function application_policy_case(policy::Symbol; laws = :both, hinge_encoding = :separate)
+function application_policy_case(
+    policy::Symbol;
+    network::Symbol = :ieee118,
+    laws = :both,
+    hinge_encoding = :separate,
+)
     laws in (:dispatchable, :vv, :vw, :both) || throw(ArgumentError("invalid policies"))
-    card=application_policy_card(policy)
-    base=application_case(card.family; level = card.level, parameters = card.parameters)
+    card=application_policy_card(policy; network)
+    base=application_case(
+        card.family;
+        network,
+        level = card.level,
+        parameters = card.parameters,
+    )
     shifts=(-0.006, 0.006, 0.0, -0.003, 0.003, -0.004)
     controllers=map(enumerate(base.controllers)) do (i, c)
         vv=opf_curve(collect(card.vv_knots) .+ shifts[i], c.smax .* collect(card.vv_values))
@@ -121,7 +133,7 @@ function application_policy_case(policy::Symbol; laws = :both, hinge_encoding = 
         base;
         controllers,
         hinge_encoding,
-        name = Symbol("ieee118_policy_", policy, "_", laws, "_", hinge_encoding),
+        name = Symbol(network, "_policy_", policy, "_", laws, "_", hinge_encoding),
     )
     return merge(
         data,
@@ -141,7 +153,12 @@ function application_policy_case(policy::Symbol; laws = :both, hinge_encoding = 
     )
 end
 
-application_policy_cases() = [(kind = :coverage, policy = p) for p in APPLICATION_POLICIES]
+function application_policy_cases(; network::Symbol = :ieee118)
+    application_policy_card(:absorption_service; network)
+    return network==:ieee118 ?
+           [(kind = :coverage, policy = p) for p in APPLICATION_POLICIES] :
+           [(kind = :coverage, policy = p, network = network) for p in IEEE300_POLICIES]
+end
 
 # Nested deterministic site lists, preserving the original six sites as anchors.
 function _application_fleet_sites(base, count, placement)
@@ -293,7 +310,9 @@ end
 
 export application_expansion_specs, application_expansion_case
 
-function application_expansion_specs(kind::Symbol = :all)
+function application_expansion_specs(kind::Symbol = :all; network::Symbol = :ieee118)
+    network==:ieee300 && return _ieee300_expansion_specs(kind)
+    network==:ieee118 || throw(ArgumentError("unsupported expansion network"))
     kind in (:all, :coverage, :fleet) || throw(ArgumentError("unknown expansion kind"))
     specs=NamedTuple[]
     kind in (:all, :coverage) && append!(specs, application_policy_cases())
@@ -320,11 +339,20 @@ function application_expansion_case(
     hinge_encoding = :separate,
 )
     haskey(spec, :kind) || throw(ArgumentError("missing expansion kind"))
+    network=get(spec, :network, :ieee118)
+    extra=haskey(spec, :network) ? (:network,) : ()
     if spec.kind==:coverage
-        Set(keys(spec))==Set((:kind, :policy)) ||
+        Set(keys(spec))==Set((:kind, :policy, extra...)) ||
             throw(ArgumentError("invalid policy spec"))
-        return application_policy_case(spec.policy; laws, hinge_encoding)
+        return application_policy_case(spec.policy; network, laws, hinge_encoding)
+    elseif spec.kind==:reserve
+        Set(keys(spec))==Set((:kind, :reserve, :network)) ||
+            throw(ArgumentError("invalid reserve spec"))
+        network==:ieee300 || throw(ArgumentError("reserve matrix uses IEEE 300"))
+        return application_reserve_case(spec.reserve; laws, hinge_encoding)
     elseif spec.kind==:fleet
+        network==:ieee118 ||
+            throw(ArgumentError("fleet geography is validated on IEEE 118 only"))
         Set(keys(spec))==Set((:kind, :family, :level, :count, :placement)) ||
             throw(ArgumentError("invalid fleet spec"))
         return application_fleet_case(
