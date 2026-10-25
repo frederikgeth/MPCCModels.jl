@@ -17,7 +17,10 @@ include bounded recorder smoke solves and fresh canonical/regime solves, but do
 not rerun the full 500-iteration difficulty matrices. Historical failure evidence
 is checked numerically; future solver versions need not repeat old failures.
 Weekly runs begin after the workflow reaches the repository default branch.
-A maintainer can manually run integration on this branch before merging.
+The existing **CI** workflow also has a manual `full_opf` boolean input that
+requests this same integration tier on the selected ref. This permits branch
+validation through the existing workflow entry point; the new standalone
+workflow becomes directly dispatchable after it reaches the default branch.
 
 From the repository root, after developing this checkout in the optional project:
 

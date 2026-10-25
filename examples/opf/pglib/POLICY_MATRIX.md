@@ -62,7 +62,10 @@ strict plateau IDs. Legacy `application_coverage` returns its existing schema.
 Strict VW requires a tight cap, P below availability, a slack S circle and
 positive P. A tight cap at availability is reported separately. Strict plateau
 positions require voltage to lie beyond the terminal knot by more than the
-voltage tolerance. Power margins are system-base pu; voltage separation is
+voltage tolerance. VV injection/absorption additionally requires a positive/
+negative terminal Q beyond the power tolerance; a zero-Q plateau counts as
+neither, and either side of a custom curve may have either polarity.
+Power margins are system-base pu; voltage separation is
 voltage pu. Defaults are 1e-5 for each. These are activity classifications, not
 feasibility or unique-cause certificates. Native network limits may also bind.
 
@@ -102,6 +105,12 @@ fingerprint remain in the numerical evidence. The frozen matrix runs both
 plus a matched dispatchable NLP per input. The raw CCOpt outcomes are never
 polished or replaced by reference solves. This protocol keeps reference
 validation separate from the difficulty benchmark.
+
+New runs label an accepted supplied point `prevalidated_reference`, with its
+original solver, physical-transfer or unknown origin retained separately in the
+prepared record, trial provenance and summary. Validation establishes numerical
+feasibility and does not establish that a solver produced the supplied point.
+Historical receipts keep their original labels and source fingerprints.
 
 ## Verified physical coverage
 

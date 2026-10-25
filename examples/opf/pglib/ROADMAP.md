@@ -1,5 +1,28 @@
 # PGLib transmission OPF roadmap
 
+## PR readiness and preservation (2026-10-25)
+
+- [x] Correct VV plateau labels using terminal Q polarity; zero-Q, one-sided,
+  reversed-polarity and feasible-zero-point regressions cover the report.
+- [x] Label validated prepared points neutrally and preserve solver/physical/
+  unknown origins separately in records, trial provenance and summaries.
+- [x] Publish repository guides inside Documenter with local relative links;
+  use a package-relative include and remove the personal-branch guide URL.
+- [x] Replace 8.98 MB of expanded receipts with 2.65 MB of lossless gzip evidence;
+  preserve original receipt hashes, every failure and every feasible witness.
+  Keep a derived 14-point fixture for PR physics checks and check its derivation
+  in exhaustive CI. Census and trace tables remain readable.
+- [x] Index all 14 full raw archives by size/SHA-256 and provide a verified,
+  non-uploading distribution-bundle command. Local raw artifacts remain intact.
+- [x] Tier CI: package/model/compact-witness/reporting checks on PRs;
+  complete solver/archive suites manual and weekly; research sweeps explicit.
+- [ ] Publish the verified raw evidence bundle as a versioned release artifact
+  when preparing the contribution. No PR or release is opened by this cleanup.
+- [ ] Run the manual OPF integration workflow on GitHub before requesting review;
+  local timing is evidence about this machine, not a cold Linux CI measurement.
+
+See [test tiers](TESTING.md) and [evidence access](hard-cases/README.md).
+
 ## Aim and acceptance rules
 
 Keep the 37 small synthetic cases as precise unit/regime regressions. Add a

@@ -6,6 +6,11 @@ on:
     tags: ['*']
   pull_request:
   workflow_dispatch:
+    inputs:
+      full_opf:
+        description: Run exhaustive OPF solver and evidence integration
+        type: boolean
+        default: false
 concurrency:
   # Skip intermediate builds: always.
   # Cancel intermediate builds: only if it is a pull request build.
@@ -39,24 +44,10 @@ jobs:
       - uses: julia-actions/cache@v3
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
-  opf-examples:
-    name: Solved OPF regime coverage - Julia 1.12
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v7
-      - uses: julia-actions/setup-julia@v3
-        with:
-          version: '1.12'
-      - uses: julia-actions/cache@v3
-      - name: Install example dependencies against this checkout
-        run: julia --project=examples/opf -e 'using Pkg; Pkg.develop(path=pwd()); Pkg.instantiate()'
-      - name: Verify original feasibility and achieved controller regimes
-        run: julia --project=examples/opf examples/opf/test-solves.jl
   pglib-examples:
-    name: PGLib physics, baselines and solved activity - Julia 1.12
+    name: OPF models and archived physical witnesses - Julia 1.12
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: julia-actions/setup-julia@v3
@@ -65,23 +56,11 @@ jobs:
       - uses: julia-actions/cache@v3
       - name: Install optional transmission example dependencies
         run: julia --project=examples/opf/pglib -e 'using Pkg; Pkg.develop(path=pwd()); Pkg.instantiate()'
-      - name: Check import, physics, derivatives and target validation
+      - name: Verify import, physics, derivatives and input validation
         run: julia --project=examples/opf/pglib examples/opf/pglib/test-model.jl
-      - name: Cross-check canonical baselines against PowerModels
-        run: julia --project=examples/opf/pglib examples/opf/pglib/validate-baselines.jl
-      - name: Verify solved regimes, bound activity and limit perturbations
-        run: julia --project=examples/opf/pglib examples/opf/pglib/test-solves.jl
-      - name: Verify placement, population and isolated network sensitivities
-        run: julia --project=examples/opf/pglib examples/opf/pglib/test-studies.jl
-      - name: Verify hard-case recorder and archived numerical witness
-        run: julia --project=examples/opf/pglib examples/opf/pglib/test-hard-search.jl
-      - name: Verify shared-hinge equivalence, reduction witnesses and traces
-        run: julia --project=examples/opf/pglib examples/opf/pglib/test-reductions.jl
-      - name: Verify application families, matched policies and physical coverage
-        run: julia --project=examples/opf/pglib examples/opf/pglib/test-applications.jl
-      - name: Verify application regime coverage and fixed-total fleet invariants
-        run: julia --project=examples/opf/pglib examples/opf/pglib/test-expansions.jl
-      - name: Verify IEEE 300 applications, derivatives and archived evidence
-        run: julia --project=examples/opf/pglib examples/opf/pglib/test-ieee300.jl
-      - name: Verify IEEE 300 policy regimes, one-sided reserve and numerical evidence
-        run: julia --project=examples/opf/pglib examples/opf/pglib/test-policy-matrix.jl
+      - name: Verify compact physical witnesses and reporting without optimizer calls
+        run: julia --project=examples/opf/pglib examples/opf/pglib/test-fast.jl
+  opf-integration:
+    name: Requested exhaustive OPF integration
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.full_opf }}
+    uses: ./.github/workflows/OPFIntegration.yml

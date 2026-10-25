@@ -268,3 +268,6 @@ conventional Q-upper reserve cases. It validates references before benchmarking,
 keeps the legacy coverage schema unchanged and reports strict P-limit activity
 separately from availability coincidences. Use
 `--network=ieee300 --kind=policy_matrix --references=FILE` with the expansion runner.
+
+See [test tiers and evidence](TESTING.md) for fast PR checks, manual/weekly solver
+integration, and the preserved full benchmark records.
