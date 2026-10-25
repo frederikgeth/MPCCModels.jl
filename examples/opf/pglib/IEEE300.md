@@ -220,7 +220,7 @@ verified reference, so they are excluded from this paired sensitivity cohort.
 
 ## Reproduce and extend the records
 
-The portable [receipt](hard-cases/ieee300-applications.toml) includes the two
+The portable [receipt](hard-cases/README.md#ieee-300-application-records) includes the two
 canonical points, all 32 actual raw returned points and starts, four unavailable
 starts, nine dispatchable outcomes, seven strict controlled references, four
 local sensitivity points, coverage, hashes and effective solver settings. The

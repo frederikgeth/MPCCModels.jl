@@ -179,7 +179,7 @@ reference under current. Gain and reserve severity do not order difficulty,
 and feasible starts do not guarantee recovery. These observations apply to the
 recorded settings/budgets, not all solver configurations or future releases.
 
-The [portable receipt](hard-cases/ieee300-policy-matrix.toml) retains all 36 raw
+The [portable receipt](hard-cases/README.md#ieee-300-policy-matrix-records) retains all 36 raw
 starts/returned vectors, nine independent reference records, nine matched
 baseline records, exact options, source/input/point hashes and measured coverage.
 The [sweep table](hard-cases/ieee300-policy-matrix-sweep.tsv) lists every raw trial.

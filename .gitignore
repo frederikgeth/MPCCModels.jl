@@ -6,3 +6,6 @@ docs/site
 
 # Complete local hard-case search artifacts (curated fixtures are committed separately).
 /examples/opf/pglib/search-results/
+
+# Repository guides copied by the documentation build.
+/docs/src/generated/

@@ -249,7 +249,7 @@ julia --project=examples/opf/pglib examples/opf/pglib/search-hard-cases.jl \
 ```
 
 The harness documentation, artifact schema and resume/replay instructions are
-in `examples/opf/pglib/HARD_SEARCH.md`. A committed capability-0.82 receipt
+in [Hard Search guide](generated/opf/pglib/HARD_SEARCH.md). A committed capability-0.82 receipt
 retains representative raw failures/recoveries and a feasible witness. CI
 rechecks that witness and the recorder, without requiring future solver versions
 to keep failing. Full search outputs remain separate from the accepted regime
@@ -283,7 +283,8 @@ The physical labels do not predict solver difficulty. PGLib topology and source
 files are retained; explicit load, capability and corridor overlays are recorded.
 
 ```julia
-include("../examples/opf/pglib/transmission-opf.jl")
+using MPCCModels
+include(joinpath(dirname(pathof(MPCCModels)), "..", "examples", "opf", "pglib", "transmission-opf.jl"))
 using .TransmissionOPF
 
 data = application_case(:reactive_support; level=:severe)
@@ -295,7 +296,7 @@ The same constructors accept `network=:ieee300`. This adds a pinned 300-bus,
 PowerModels/Ipopt, plus nine operating inputs with network-specific plant
 placements and ratings. The canonical model has 738 variables and 1,833
 constraints. The IEEE 118 defaults and original 22 solved overlays retain their
-definitions. See the [IEEE 300 study guide](https://github.com/frederikgeth/MPCCModels.jl/blob/codex/opf-volt-var-watt/examples/opf/pglib/IEEE300.md)
+definitions. See the [IEEE 300 study guide](generated/opf/pglib/IEEE300.md)
 for the physical matrix, coverage and raw CCOpt results. Select `--network=ieee300`
 in `search-applications.jl` to run this matrix with the existing failure-retaining
 recorder and independently checked references.
@@ -307,7 +308,7 @@ matched dispatchable baselines, verified numerical witnesses and measured curve/
 bound coverage. A feasible challenge case can enter the catalog even when CCOpt
 fails; failed witness searches remain unresolved. Application definitions,
 physical parameter tables and the measurement protocol are documented in
-`examples/opf/pglib/APPLICATIONS.md`.
+[Applications guide](generated/opf/pglib/APPLICATIONS.md).
 
 The application extension adds `application_policy_card`,
 `application_policy_case`, `application_fleet_case` and `application_fleet_start`.
@@ -318,7 +319,7 @@ provide an aggregate-physics control; clustered/dispersed distinct-site fleets
 intentionally vary geography. The optional `search-expansions.jl` runner records
 raw trials, matched dispatchable baselines and explicitly labelled physical
 transfers versus solver-derived references. Definitions, measured outcomes and
-scope are documented in `examples/opf/pglib/EXPANSIONS.md`.
+scope are documented in [Expansions guide](generated/opf/pglib/EXPANSIONS.md).
 
 The IEEE 300 operating-policy extension adds network-aware
 `application_policy_case` inputs and `application_reserve_case` for one-sided
@@ -327,5 +328,5 @@ positive mandatory-Q minima. `application_policy_coverage` separates strict VW
 activity from joint availability/VW activity and checks strict plateau positions;
 the original coverage report schema is unchanged. References are validated at
 `1e-7` before both CCOpt profiles run from flat/reference starts. See
-`examples/opf/pglib/POLICY_MATRIX.md` for the nine-input physical matrix,
+[Policy Matrix guide](generated/opf/pglib/POLICY_MATRIX.md) for the nine-input physical matrix,
 measured regimes, numerical evidence and reproducible commands.
