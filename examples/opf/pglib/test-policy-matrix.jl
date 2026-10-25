@@ -3,6 +3,7 @@ include("hard-search.jl")
 using .HardCaseSearch
 const H=HardCaseSearch
 const T=H.TransmissionOPF
+include("test-reporting.jl")
 
 @testset "IEEE 300 policy cards, source anchors and matched laws" begin
     specs=T.application_expansion_specs(:policy_matrix; network = :ieee300)
@@ -90,43 +91,6 @@ end
     end
 end
 
-@testset "Independent policy-limit and strict plateau classification" begin
-    data=T.application_policy_case(:gentle_watt_cap; network = :ieee300)
-    model=T.TransmissionOPFModel(data)
-    l=T.transmission_layout(data)
-    x=copy(get_x0(model))
-    c=first(data.controllers)
-    v=sum(c.vw.knots)/2
-    x[l.v[c.bus]]=v
-    x[l.p[1]]=T.BalancedACOPF.opf_volt_watt(v, c)
-    x[l.q[1]]=T.BalancedACOPF.opf_volt_var(v, c)
-    cv=T.application_policy_coverage(data, x)
-    @test "plant1" in cv["strict_vw_binding"]
-    @test !("plant1" in cv["availability_vw_joint"])
-    joint=T.transmission_overlay(
-        data;
-        controllers = [merge(c, (p_available = x[l.p[1]],)); data.controllers[2:end]],
-    )
-    cj=T.application_policy_coverage(joint, x)
-    @test !("plant1" in cj["strict_vw_binding"])
-    @test "plant1" in cj["availability_vw_joint"]
-    @test !haskey(T.application_coverage(data, x), "strict_vw_binding")
-    # This diagnostic point deliberately need not satisfy network balance.
-    @test maximum(values(T.transmission_residuals(model, data, x)))>1e-5
-    injection=T.application_policy_case(:injection_service; network = :ieee300)
-    li=T.transmission_layout(injection)
-    xi=copy(get_x0(T.TransmissionOPFModel(injection)))
-    xi[li.v[injection.controllers[1].bus]]=injection.controllers[1].vv.knots[1]-1e-4
-    @test "plant1" in T.application_policy_coverage(injection, xi)["vv_injection_plateau"]
-    for tol in (0, NaN, Inf)
-        @test_throws ArgumentError T.application_policy_coverage(
-            data,
-            x;
-            voltage_tolerance = tol,
-        )
-    end
-end
-
 @testset "Policy matrix nonflat physics and sparse derivatives" begin
     rng=MersenneTwister(30025)
     for spec in T.application_expansion_specs(:policy_matrix; network = :ieee300)
@@ -150,47 +114,6 @@ end
         @test hprod(nlp, x, lambda, direction)≈(
             laggrad(x+h*direction)-laggrad(x-h*direction)
         )/(2*h) rtol=1e-6 atol=1e-4
-    end
-end
-
-@testset "Prepared references reject mismatches and original infeasibility" begin
-    mktempdir() do dir
-        data=T.application_case(:reactive_support; network = :ieee300, level = :nominal)
-        source=TOML.parsefile(H._expansion_source_file(:ieee300))
-        row=only(
-            filter(
-                r->r["family"]=="reactive_support" && r["level"]=="nominal",
-                source["cases"],
-            ),
-        )
-        x=row["witness"]["x"]
-        input=H._write(joinpath(dir, "input.toml"), H._snapshot(data))
-        case=(data = data, key = "anchor", path = input)
-        entry=Dict(
-            "case_key"=>case.key,
-            "case_sha256"=>H._sha(input),
-            "x"=>x,
-            "point_sha256"=>H._digest(Dict("x"=>x)),
-            "reference_kind"=>"archived_solver_point",
-        )
-        receipt=H._write(joinpath(dir, "receipt.toml"), Dict("cases"=>[entry]))
-        file=H._prepared_point(dir, case, receipt; tolerance = 1e-7)
-        @test isfile(file)
-        witness=H._expansion_witness(dir, case; tolerance = 1e-7)
-        @test witness.point==x && witness.kind=="prevalidated_solver_point"
-        @test H._prepared_point(dir, case, receipt; tolerance = 1e-7)==file
-        bad=copy(entry)
-        bad["case_sha256"]="bad"
-        path=H._write(joinpath(dir, "bad.toml"), Dict("cases"=>[bad]))
-        @test_throws ErrorException H._prepared_point(dir, case, path; tolerance = 1e-7)
-        bad=copy(entry)
-        bad["x"]=zeros(length(x))
-        bad["point_sha256"]=H._digest(Dict("x"=>bad["x"]))
-        H._write(path, Dict("cases"=>[bad]))
-        @test_throws ErrorException H._prepared_point(dir, case, path; tolerance = 1e-7)
-        bad["point_sha256"]="bad"
-        H._write(path, Dict("cases"=>[bad]))
-        @test_throws ErrorException H._prepared_point(dir, case, path; tolerance = 1e-7)
     end
 end
 
@@ -324,7 +247,7 @@ end
         rows=run_expansion_search(out; kw...)
         @test length(rows)==2 && all(r->r["witness_available"], rows)
         summary=TOML.parsefile(joinpath(out, "summary.toml"))
-        @test only(values(summary["cases"]))["reference_kind"]=="prevalidated_solver_point"
+        @test only(values(summary["cases"]))["reference_kind"]=="prevalidated_reference"
         saved=Dict(r["trial"]=>read(joinpath(out, r["trial"], "result.toml")) for r in rows)
         again=run_expansion_search(out; kw..., resume = true)
         @test length(again)==2

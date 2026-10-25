@@ -90,7 +90,8 @@ function _prepared_point(directory, case, receipt; tolerance)
     record=merge(
         copy(row),
         Dict(
-            "method"=>"prevalidated_solver_point",
+            "method"=>"prevalidated_reference",
+            "origin_reference_kind"=>get(row, "reference_kind", "unknown"),
             "source_receipt_sha256"=>_sha(receipt),
             "metrics"=>metrics,
             "tolerance"=>tolerance,
@@ -104,10 +105,14 @@ end
 
 function _expansion_witness(directory, case; tolerance)
     witness=_witness_reference(directory, case; tolerance)
-    !isnothing(witness) &&
-        return (point = witness.point, path = witness.trial, kind = "solver_point")
+    !isnothing(witness) && return (
+        point = witness.point,
+        path = witness.trial,
+        kind = "solver_point",
+        origin = "solver_point",
+    )
     for (name, kind) in (
-        ("prepared-point.toml", "prevalidated_solver_point"),
+        ("prepared-point.toml", "prevalidated_reference"),
         ("source-point.toml", "physical_transfer"),
     )
         file=joinpath(directory, "cases", case.key, name)
@@ -118,8 +123,12 @@ function _expansion_witness(directory, case; tolerance)
         record["point_sha256"]==_digest(Dict("x"=>record["x"])) ||
             error("reference point checksum mismatch")
         metrics=_metrics(TransmissionOPFModel(case.data), case.data, record["x"], tolerance)
-        metrics["physically_feasible"] &&
-            return (point = Float64.(record["x"]), path = file, kind = kind)
+        metrics["physically_feasible"] && return (
+            point = Float64.(record["x"]),
+            path = file,
+            kind = kind,
+            origin = get(record, "origin_reference_kind", get(record, "method", "unknown")),
+        )
     end
     return nothing
 end
@@ -359,6 +368,7 @@ function run_expansion_search(
                             Dict(
                                 "witness_reference"=>relpath(witness.path, directory),
                                 "reference_kind"=>witness.kind,
+                                "reference_origin"=>witness.origin,
                             ),
                         ),
                     )
@@ -452,6 +462,7 @@ function summarize_expansions(directory)
             if !isnothing(witness)
                 info["witness_reference"]=relpath(witness.path, directory)
                 info["reference_kind"]=witness.kind
+                info["reference_origin"]=witness.origin
                 info["witness_coverage"]=_plain(_expansion_coverage(data, witness.point))
             end
             cases[key]=info

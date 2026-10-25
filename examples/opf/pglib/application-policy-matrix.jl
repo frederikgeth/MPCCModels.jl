@@ -175,14 +175,15 @@ function application_policy_coverage(data, x; tolerance = 1e-5, voltage_toleranc
                 c.margins.availability>tolerance &&
                 c.margins.volt_watt>tolerance,
     )
-    injection=ids(
-        (i, c)->!isnothing(data.controllers[i].vv) &&
-                c.voltage<data.controllers[i].vv.knots[1]-voltage_tolerance,
-    )
-    absorption=ids(
-        (i, c)->!isnothing(data.controllers[i].vv) &&
-                c.voltage>data.controllers[i].vv.knots[end]+voltage_tolerance,
-    )
+    function plateau_value(i, c)
+        curve=data.controllers[i].vv
+        isnothing(curve) && return 0.0
+        c.voltage<first(curve.knots)-voltage_tolerance && return first(curve.values)
+        c.voltage>last(curve.knots)+voltage_tolerance && return last(curve.values)
+        return 0.0
+    end
+    injection=ids((i, c)->plateau_value(i, c)>tolerance)
+    absorption=ids((i, c)->plateau_value(i, c)<-tolerance)
     lower_vw=ids(
         (i, c)->!isnothing(data.controllers[i].vw) &&
                 c.voltage>data.controllers[i].vw.knots[end]+voltage_tolerance,
