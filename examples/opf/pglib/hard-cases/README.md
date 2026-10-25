@@ -234,3 +234,46 @@ Manual utilities in this directory regenerate independent canonical receipts
 references (`study-ieee300-limits.jl`), and build the portable receipt from
 completed searches (`curate-ieee300.jl`). Their commands and the admission gates
 are documented in the study guide. They do not overwrite raw attempts.
+
+## IEEE 300 policy matrix records
+
+`ieee300-policy-matrix.toml` retains nine independently validated policy/reserve
+references, all 36 raw CCOpt starts and returned points, nine matched dispatchable
+baseline records, physical coverage, effective solver settings and source/input/
+Float64-point hashes. `ieee300-policy-matrix-sweep.tsv` lists every raw trial.
+The [study guide](../POLICY_MATRIX.md) defines the hardware, policies, one-sided
+Q-upper formula, numerical gates and reproducible commands.
+
+All nine references are selected-sector local NLP points with maximum original
+residual 1.73e-11. The reference generator used actual archived operating
+voltages; every candidate passed its first operating reference attempt. No desired
+regime selected a sector or fixed a voltage. Four plants per cap-gain input are
+strictly VW-limited, two absorption and four injection plateaus are reached, and
+the early backstop reaches two VW lower plateaus. Every reserve case retains
+all original Q lower bounds, including positive source Q minima.
+
+The benchmark receives these references before its raw trials. It rechecks
+complete input identity, point hashes and original feasibility, then copies the
+receipt into the captured run. Both solver profiles use the same reference point
+for each input. All 32 raw failures reach 500 iterations on known-feasible inputs;
+four raw trials pass, and all nine dispatchable runs pass. The cap-gain variants
+share the same physical dispatchable baseline. No raw solve is polished or
+replaced. Tests validate historical numerical evidence without requiring future
+CCOpt releases to retain the same failures.
+
+The recorded production source is commit `732d0dd`. Resume preserves all **318
+matrix files** byte for byte, and the portable receipt and sweep table regenerate
+byte for byte from completed records. Complete local archives are retained under
+ignored `examples/opf/pglib/search-results/`:
+
+| Archive | SHA-256 |
+| --- | --- |
+| `ieee300-policy-references-2026-10-25.tar.gz` | `1f81e43b59614ab20dac264b54494382cd1288d0d86646f4d936d0dcd3b1780b` |
+| `ieee300-policy-matrix-2026-10-25.tar.gz` | `4646aee659c03d66e0684e9fbd58d6c8e358bc0592bbb713a543f81b101472a6` |
+
+The archives include complete source/environment copies, the source application
+receipt, every reference and baseline attempt, raw starts/results and solver
+logs. The new studies retain the unresolved status of the two original signed-Q
+stress inputs; the one-sided reserve sequence is a separate feasible family.
+Local sector references establish numerical feasibility, not global optimality
+or full-MPCC stationarity. Publishing the complete archives remains follow-up work.

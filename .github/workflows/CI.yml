@@ -83,3 +83,5 @@ jobs:
         run: julia --project=examples/opf/pglib examples/opf/pglib/test-expansions.jl
       - name: Verify IEEE 300 applications, derivatives and archived evidence
         run: julia --project=examples/opf/pglib examples/opf/pglib/test-ieee300.jl
+      - name: Verify IEEE 300 policy regimes, one-sided reserve and numerical evidence
+        run: julia --project=examples/opf/pglib examples/opf/pglib/test-policy-matrix.jl

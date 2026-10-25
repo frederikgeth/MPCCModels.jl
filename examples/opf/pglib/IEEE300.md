@@ -244,9 +244,10 @@ files** byte for byte. New searches use the current source and a new directory.
 See [archive details](hard-cases/README.md#ieee-300-application-records) for local
 archive checksums and the retained interrupted exploratory run.
 
-Next priorities are a feasible reactive-support operating sequence, one-sided
-conventional Q-upper headroom studies, explicit plateau/backstop policies, and
-fixed-total fleets with voltage-class/interface eligibility. These address
+The subsequent [policy matrix](POLICY_MATRIX.md) implements strict VW caps,
+reactive saturation, an early backstop and feasible one-sided Q-upper reserve
+studies. Fixed-total fleets with voltage-class/interface eligibility and further
+operating sequences remain priorities. These address
 physical coverage gaps while retaining the difficult feasible inputs already
 found; algorithm diagnosis is not a prerequisite for growing the catalog.
 

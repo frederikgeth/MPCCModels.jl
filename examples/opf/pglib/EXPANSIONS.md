@@ -198,3 +198,14 @@ Complete local archives, excluded from Git:
   `8ca51806b0b0c83faa068126fcbc7c1be44f91fd2065e094863059e30817be37`.
 - `search-results/ieee118-fleets-2026-10-25.tar.gz`, SHA-256
   `f98c1b13c75d4a210b95a50a6328adc8f99e49411f53fadb73823d6fecfcb164`.
+
+## IEEE 300 policy and reserve extension
+
+The [IEEE 300 policy matrix](POLICY_MATRIX.md) uses the same constructors and
+recorder with network-specific policy cards and verified operating anchors.
+`application_policy_case(...; network=:ieee300)` selects its six policies;
+`application_reserve_case(:mild/:moderate/:strong)` changes only conventional Q
+upper bounds. `application_expansion_specs(:policy_matrix; network=:ieee300)`
+combines these nine inputs. IEEE 118 defaults, policy definitions and archived
+inputs retain their identities. IEEE 300 fleet geography is intentionally not
+inherited from the IEEE 118 placement rules.

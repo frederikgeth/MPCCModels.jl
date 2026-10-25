@@ -261,3 +261,10 @@ caps. `application_fleet_case` preserves the rating-weighted heterogeneous mixtu
 while separating same-site replicas from clustered/dispersed distinct sites.
 `search-expansions.jl` retains all raw outcomes, dispatchable counterfactuals,
 constructed source points and independently checked operating/returned references.
+
+The [IEEE 300 policy matrix](POLICY_MATRIX.md) adds strict VW cap gains, bounded
+injection/absorption services, an earlier export backstop and nested one-sided
+conventional Q-upper reserve cases. It validates references before benchmarking,
+keeps the legacy coverage schema unchanged and reports strict P-limit activity
+separately from availability coincidences. Use
+`--network=ieee300 --kind=policy_matrix --references=FILE` with the expansion runner.

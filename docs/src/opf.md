@@ -319,3 +319,13 @@ intentionally vary geography. The optional `search-expansions.jl` runner records
 raw trials, matched dispatchable baselines and explicitly labelled physical
 transfers versus solver-derived references. Definitions, measured outcomes and
 scope are documented in `examples/opf/pglib/EXPANSIONS.md`.
+
+The IEEE 300 operating-policy extension adds network-aware
+`application_policy_case` inputs and `application_reserve_case` for one-sided
+conventional Q-upper contractions. Lower Q bounds remain fixed, including
+positive mandatory-Q minima. `application_policy_coverage` separates strict VW
+activity from joint availability/VW activity and checks strict plateau positions;
+the original coverage report schema is unchanged. References are validated at
+`1e-7` before both CCOpt profiles run from flat/reference starts. See
+`examples/opf/pglib/POLICY_MATRIX.md` for the nine-input physical matrix,
+measured regimes, numerical evidence and reproducible commands.

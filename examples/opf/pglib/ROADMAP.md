@@ -670,14 +670,69 @@ Intended regimes never select a witness sector or fix a bus voltage.
       limit classification without changing legacy reports by default.
 - [x] Validate authoritative overlays, policy matching, source identity, derivative
       products and recorder behavior; freeze candidate definitions in a commit.
-- [ ] Validate independent numerical references and achieved regimes; retain
+- [x] Validate independent numerical references and achieved regimes; retain
       unsuccessful candidates and reference attempts explicitly.
-- [ ] Freeze the accepted matrix and run both CCOpt profiles from flat/checked
+- [x] Freeze the accepted matrix and run both CCOpt profiles from flat/checked
       reference starts, with matched dispatchable baselines and raw failures intact.
-- [ ] Curate portable numerical evidence, measured physical/solver matrices,
+- [x] Curate portable numerical evidence, measured physical/solver matrices,
       remaining gaps and the next application cases; update CI, docs and roadmap.
 
 A missing reference is unresolved feasibility, and a tight VW cap coincident with
 availability is not strict VW curtailment. No full-MPCC stationarity or global
 optimality is asserted by selected-sector local references. Explaining CCOpt
 failures is not a prerequisite for admitting physically meaningful feasible cases.
+
+### IEEE 300 policy matrix: measured completion
+
+The [policy matrix](POLICY_MATRIX.md) adds six network-specific operating policies
+and three one-sided Q-upper reserve inputs. All nine have independently checked
+references (maximum original residual **1.73e-11**) before benchmarking. The
+three cap gains strictly limit four plants each, with strict ramp positions
+around **.21–.78**. The saturation services reach two absorption and four injection
+plateaus; the early export backstop reaches two VW lower plateaus, one with
+strict cap limitation. These fill the intended coverage gaps without fixed
+voltages, forced target sectors, redundant hardware Q bounds or changed legacy
+IEEE 118 inputs.
+
+Reserve fractions .98/.95/.90 retain that fraction of each original Q-interval
+width at the nominal reactive operating point. Every original Q lower bound,
+plant, cost, P limit, load and native network limit remains fixed. Q-upper bound
+counts are **35/35/37**, with lower-voltage counts **1/2/4**. The two older coupled
+signed-Q stress cases retain their unresolved status; this sequence is a
+separate feasible application family.
+
+All **36 raw CCOpt trials execute**. **Four pass and 32 reach 500 iterations**;
+all 32 failures have prevalidated references. All nine matched dispatchable runs
+pass (the three cap gains share one physical dispatchable baseline). Steep VW,
+both saturation services, mild reserve and strong reserve fail both profiles
+from both starts. Other inputs recover in different single profile/start
+combinations, so neither gain nor reserve severity orders measured difficulty.
+The production source remains frozen at `732d0dd` throughout reference
+validation and benchmarking; no solver-engine changes are introduced.
+
+Portable numerical records retain every raw start/returned point, reference,
+baseline, original residual and actual solver option. The recorder verifies
+prepared references before any raw solve and preserves their provenance.
+Resume retains all **318 matrix files** byte for byte; receipt regeneration is
+byte-identical. Full local archives, including source/environment snapshots and
+solver logs, are indexed in the [record guide](hard-cases/README.md#ieee-300-policy-matrix-records).
+
+Validation: **2,199 policy-matrix assertions** pass on Julia 1.10.12 and 1.12.6,
+including all recorded points, regime classifications, one-sided interval
+nesting, law/hardware matching, sparse nonflat derivatives, tampered-reference
+rejection and prepared-reference resume. Existing **2,648 expansion** and
+**1,146 IEEE 300** assertions pass on Julia 1.12.6. Documenter builds locally
+with external link checking disabled. CI now runs the new suite; remote CI and
+publication of complete archives remain pending.
+
+Next physically motivated additions:
+
+| Study | Controlled comparison | Qualification |
+| --- | --- | --- |
+| Matched law variants | VV-only/VW-only/both on representative cap, saturation and reserve inputs with identical hardware/operating envelopes | Transfer and independently recheck feasible physical points; distinguish transfers from solver-produced references |
+| Interior ramp/backstop policies | Vary intervention windows to add strict VW mid-ramp interiors beyond the quarter/late positions already covered | Measure achieved positions and competing margins; keep unchanged inputs explicit |
+| IEEE 300 fleets | Fixed-total 6/12/24-unit heterogeneous same-site replicas and geographically distinct plants | Admit connection sites by voltage class/interface capacity; retain exact aggregate-physics controls and checked references |
+| Operating trajectories | Separate load, availability and one-sided Q-upper changes around the verified reserve sequence | Preserve feasibility/transition evidence and raw flat/neighbor/reference outcomes; do not infer infeasibility from local solver failures |
+
+These studies grow the physically interpretable benchmark families. Diagnosing
+why CCOpt fails is optional and does not gate the next case additions.
