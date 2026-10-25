@@ -1,8 +1,8 @@
 # OPF test tiers and evidence
 
-The MPCCModels public runtime API and dependencies are unchanged. OPF factories,
-case cards, diagnostics and search tools live in the optional examples, whose
-separate environments declare their solver and power-system dependencies.
+OPF factories, case cards, diagnostics and search tools are optional example
+APIs; MPCCModels does not export them. The runtime dependency list is unchanged.
+The separate example environments declare their solver and power-system dependencies.
 
 | Tier | Trigger | Checks |
 | --- | --- | --- |
@@ -33,3 +33,13 @@ julia --project=examples/opf/pglib examples/opf/pglib/test-evidence.jl
 The [evidence guide](hard-cases/README.md#access-and-preservation) explains the
 lossless receipt archive, compact derived witness fixture and complete raw-log
 bundle. Nothing in these checks asserts global optimality or MPCC stationarity.
+
+## Local validation after tiering (2026-10-25)
+
+With cached dependencies on the development machine (Julia 1.12.6), separate
+processes for `test-model.jl` and `test-fast.jl` took **27.42 s + 36.12 s**.
+The complete eleven-script PGLib integration tier took **538.37 s**; the separate
+37-case solved gate took **23.10 s**. These include Julia process startup and
+compilation in each process, and exclude dependency installation. They are local
+observations, not cold Linux CI measurements or a runtime guarantee. The small
+follow-up provenance round-trip assertions are included in the fast-tier timing.

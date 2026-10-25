@@ -122,6 +122,23 @@ end
                 )
             end
         end
+        # Revalidating an already prepared reference must retain its deeper origin.
+        for field in ("origin_reference_kind", "reference_origin")
+            prepared_entry=merge(
+                copy(entry),
+                Dict(
+                    "reference_kind"=>"prevalidated_reference",
+                    field=>"physical_transfer_without_solver",
+                ),
+            )
+            path=H._write(joinpath(dir, "reused.toml"), Dict("cases"=>[prepared_entry]))
+            mktempdir() do fresh
+                H._prepared_point(fresh, case, path; tolerance = 1e-7)
+                witness=H._expansion_witness(fresh, case; tolerance = 1e-7)
+                @test witness.kind=="prevalidated_reference"
+                @test witness.origin=="physical_transfer_without_solver"
+            end
+        end
         bad=copy(entry)
         bad["case_sha256"]="bad"
         path=H._write(joinpath(dir, "bad.toml"), Dict("cases"=>[bad]))

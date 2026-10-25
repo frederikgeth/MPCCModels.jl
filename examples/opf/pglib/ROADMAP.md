@@ -23,6 +23,19 @@
 
 See [test tiers](TESTING.md) and [evidence access](hard-cases/README.md).
 
+Validation for this cleanup: the core package passes 2,050 assertions; the fast
+transmission gate checks 14 points and passes 140 assertions on Julia 1.12.
+The fast tier also passes on Julia 1.10, with final reporting regressions checked
+separately. All eleven exhaustive PGLib scripts and the 151-assertion solved
+37-case gate pass locally. Integrity tests verify all seven expanded receipt
+hashes and byte-for-byte compact-fixture regeneration. The 19.2 MB preservation
+bundle round-trips every receipt and all fourteen raw archives, and regenerates
+byte for byte. Documenter builds offline with external link checks disabled, and rendered
+local files/fragments pass in flat and CI-style pretty-URL layouts. Workflow YAML
+and tier wiring are checked locally; remote GitHub execution remains pending.
+The tracked tree is about 4.2 MB versus 10.3 MB before cleanup; Git history is
+retained. Cached local tier timings are recorded in the testing guide.
+
 ## Aim and acceptance rules
 
 Keep the 37 small synthetic cases as precise unit/regime regressions. Add a

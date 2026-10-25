@@ -90,7 +90,11 @@ function _prepared_point(directory, case, receipt; tolerance)
         copy(row),
         Dict(
             "method"=>"prevalidated_reference",
-            "origin_reference_kind"=>get(row, "reference_kind", "unknown"),
+            "origin_reference_kind"=>get(
+                row,
+                "origin_reference_kind",
+                get(row, "reference_origin", get(row, "reference_kind", "unknown")),
+            ),
             "source_receipt_sha256"=>_sha(receipt),
             "metrics"=>metrics,
             "tolerance"=>tolerance,
