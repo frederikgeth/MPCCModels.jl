@@ -154,8 +154,7 @@ end
 end
 
 @testset "Curated feasible witness and preserved raw outcomes" begin
-    fixture =
-        TOML.parsefile(joinpath(@__DIR__, "hard-cases", "ieee118-capability-082.toml"))
+    fixture = TOML.parsefile(HardCaseSearch.evidence_file("ieee118-capability-082.toml"))
     data = capability_case(fixture["factor"])
     @test fixture["source_file_sha256"] ==
           HardCaseSearch._sha(joinpath(@__DIR__, "data", fixture["source_file"]))
@@ -282,8 +281,7 @@ end
 end
 
 @testset "Archived transition witnesses and ratio-one raw points" begin
-    fixture =
-        TOML.parsefile(joinpath(@__DIR__, "hard-cases", "ieee118-transitions-q45.toml"))
+    fixture = TOML.parsefile(HardCaseSearch.evidence_file("ieee118-transitions-q45.toml"))
     @test fixture["source_file_sha256"] ==
           HardCaseSearch._sha(joinpath(@__DIR__, "data", fixture["source_file"]))
     @test length(fixture["cases"]) == 9

@@ -195,7 +195,7 @@ end
 end
 
 @testset "Archived operating coverage and fleet challenges" begin
-    fixture=TOML.parsefile(joinpath(@__DIR__, "hard-cases", "ieee118-expansions.toml"))
+    fixture=TOML.parsefile(HardCaseSearch.evidence_file("ieee118-expansions.toml"))
     bits(x) = bytes2hex(H.sha256(join(bitstring.(Float64.(x)), "\n")))
     restore(d) =
         d["kind"]=="coverage" ? (kind = :coverage, policy = Symbol(d["policy"])) :

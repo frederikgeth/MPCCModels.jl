@@ -10,6 +10,7 @@ function _source_files()
             "studies.jl",
             "diagnostics.jl",
             "hard-search.jl",
+            "benchmark-evidence.jl",
             "hard-search-driver.jl",
             "transition-search.jl",
             "search-trace.jl",
@@ -30,6 +31,7 @@ function _source_files()
             n in ("balanced-ac-opf.jl", "data.jl", "cases.jl", "diagnostics.jl")
         ],
     )
+    push!(files, joinpath(HERE, "hard-cases", "evidence", "index.toml"))
     push!(files, joinpath(ROOT, "Project.toml"))
     for (directory, _, names) in walkdir(joinpath(ROOT, "src"))
         append!(files, [joinpath(directory, n) for n in names if endswith(n, ".jl")])

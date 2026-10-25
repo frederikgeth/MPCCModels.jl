@@ -1,6 +1,8 @@
 module HardCaseSearch
 
 using CCOpt, MPCCModels, NLPModels, TOML, SHA, Dates, Random
+include("benchmark-evidence.jl")
+using .BenchmarkEvidence: evidence_file
 include("transmission-opf.jl")
 using .TransmissionOPF
 

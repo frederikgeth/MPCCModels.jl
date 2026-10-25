@@ -162,7 +162,7 @@ end
 end
 
 @testset "Curated reductions and original physical evidence" begin
-    fixture = TOML.parsefile(joinpath(@__DIR__, "hard-cases", "ieee118-reductions.toml"))
+    fixture = TOML.parsefile(HardCaseSearch.evidence_file("ieee118-reductions.toml"))
     bits(x) = bytes2hex(H.sha256(join(bitstring.(Float64.(x)), "\n")))
     @test fixture["source_file_sha256"] ==
           H._sha(joinpath(@__DIR__, "data", fixture["source_file"]))

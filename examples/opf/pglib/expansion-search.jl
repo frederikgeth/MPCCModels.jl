@@ -1,7 +1,7 @@
 # One case-driven recorder for policy and fleet expansions; included in HardCaseSearch.
 export run_expansion_search, summarize_expansions
 
-const EXPANSION_SOURCE=joinpath(HERE, "hard-cases", "ieee118-applications.toml")
+const EXPANSION_SOURCE=evidence_file("ieee118-applications.toml")
 function _expansion_key(s)
     key=s.kind==:coverage ? "policy-$(s.policy)" :
         s.kind==:reserve ? "reserve-$(s.reserve)" :
@@ -11,8 +11,7 @@ function _expansion_key(s)
 end
 function _expansion_source_file(network)
     network in (:ieee118, :ieee300) || throw(ArgumentError("unsupported source network"))
-    return network==:ieee118 ? EXPANSION_SOURCE :
-           joinpath(HERE, "hard-cases", "ieee300-applications.toml")
+    return network==:ieee118 ? EXPANSION_SOURCE : evidence_file("ieee300-applications.toml")
 end
 function _expansion_coverage(data, x)
     return data.network==:ieee300 ? application_policy_coverage(data, x) :

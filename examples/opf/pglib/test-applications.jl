@@ -159,7 +159,7 @@ end
 end
 
 @testset "Archived application witnesses, challenges and physical comparisons" begin
-    fixture=TOML.parsefile(joinpath(@__DIR__, "hard-cases", "ieee118-applications.toml"))
+    fixture=TOML.parsefile(HardCaseSearch.evidence_file("ieee118-applications.toml"))
     bits(x) = bytes2hex(H.sha256(join(bitstring.(Float64.(x)), "\n")))
     @test fixture["source_file_sha256"]==H._sha(
         joinpath(@__DIR__, "data", fixture["source_file"]),

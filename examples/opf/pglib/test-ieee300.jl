@@ -175,7 +175,7 @@ end
 end
 
 @testset "Portable IEEE 300 canonical, application and CCOpt evidence" begin
-    fixture=TOML.parsefile(joinpath(@__DIR__, "hard-cases", "ieee300-applications.toml"))
+    fixture=TOML.parsefile(HardCaseSearch.evidence_file("ieee300-applications.toml"))
     bits(x) = bytes2hex(H.sha256(join(bitstring.(Float64.(x)), "\n")))
     @test fixture["network"]=="ieee300"
     @test fixture["source_revision"]==T.PGLIB_REVISION

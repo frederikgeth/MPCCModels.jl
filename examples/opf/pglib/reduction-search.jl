@@ -29,7 +29,7 @@ function reduction_case(; encoding = :separate, controlled = 3, plateau = :equal
     )
 end
 
-const REDUCTION_RECEIPT = joinpath(HERE, "hard-cases", "ieee118-transitions-q45.toml")
+const REDUCTION_RECEIPT = evidence_file("ieee118-transitions-q45.toml")
 
 """Transfer the archived central feasible point and independently check the target case.
 

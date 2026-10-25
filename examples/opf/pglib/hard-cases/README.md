@@ -1,6 +1,43 @@
 # Curated hard-case records
 
-`ieee118-capability-082.toml` is a compact, portable receipt from the first
+## Access and preservation
+
+The seven historical TOML receipts described below are stored losslessly as
+`evidence/*.toml.gz`. `evidence/index.toml` records compressed and original byte
+counts and SHA-256 hashes. Resolve a receipt with
+`HardCaseSearch.evidence_file("ieee300-policy-matrix.toml")` after including
+`hard-search.jl` in the optional PGLib environment. Extraction is local, verifies
+both hashes, and writes a content-addressed temporary cache. No download or
+solver run is needed. Original receipt bytes, historical provenance and failure
+records have not been edited. The TSV census/trace tables remain directly readable.
+
+`fast-witnesses.toml` is a derived PR fixture containing 14 physical points:
+three nominal IEEE 118 applications, two independent canonical IEEE 300 points,
+and all nine IEEE 300 policy/reserve references. It records authoritative receipt
+hashes, input hashes and Float64 bit hashes. It does not replace the full evidence.
+Regenerate it with `curate-fast-fixtures.jl OUTPUT.toml`; exhaustive CI checks
+byte-for-byte derivation from the full receipts.
+
+`evidence/raw-archives.toml` indexes **all 14 complete local raw archives**, with
+sizes and SHA-256 hashes, including exploratory and failed attempts. They remain
+under ignored `../search-results/`. Package them together with the lossless
+receipts for future distribution, without uploading or overwriting anything:
+
+```sh
+julia --project=examples/opf/pglib examples/opf/pglib/package-evidence.jl OUTPUT.tar
+```
+
+The command verifies every archive and receipt before packaging and writes a
+SHA-256 sidecar. This preserves a complete transferable evidence bundle. Public
+hosting remains a release task; raw-log archives are not yet downloadable from
+this repository. `evidence/release-bundle.toml` identifies the verified local
+19.2 MB preservation bundle and its checksum. See [test tiers](../TESTING.md) for mandatory PR checks and the
+manual/weekly exhaustive gate. Historical source fingerprints belong to the
+captured version; reproducing an old source-matched resume requires that version.
+
+## Capability receipt
+
+`ieee118-capability-082.toml` is a portable historical receipt from the first
 capability search, not a requirement that future CCOpt releases keep failing.
 It preserves the original numerical inputs to the starts/solver, returned
 points, diagnostics, effective options and an independently checked feasible
@@ -27,7 +64,7 @@ From the repository root in the optional PGLib environment:
 using TOML
 include("examples/opf/pglib/hard-search.jl")
 using .HardCaseSearch
-receipt = TOML.parsefile("examples/opf/pglib/hard-cases/ieee118-capability-082.toml")
+receipt = TOML.parsefile(HardCaseSearch.evidence_file("ieee118-capability-082.toml"))
 trial = receipt["trials"][1]
 run_trial(capability_case(receipt["factor"]), trial["start"], trial["profile"],
     "NEW_REPLAY_DIRECTORY"; start_label = trial["start_label"],
@@ -57,7 +94,7 @@ physical checks and achieved activity. Reconstruct each input with
 The complete 54-row census is `ieee118-transitions-sweep.tsv`.
 
 ```julia
-receipt = TOML.parsefile("examples/opf/pglib/hard-cases/ieee118-transitions-q45.toml")
+receipt = TOML.parsefile(HardCaseSearch.evidence_file("ieee118-transitions-q45.toml"))
 trial = only(filter(t -> t["start_label"] == "flat", receipt["trials"]))
 data = transition_case(; knee=trial["knee"], offset=trial["offset"], qmax=trial["qmax"])
 run_trial(data, trial["start"], trial["profile"], "NEW_TRANSITION_REPLAY_DIRECTORY";
@@ -96,7 +133,7 @@ solved-status accuracy gap, and the original three-controller failure followed
 by a larger-budget solved status that still violates the direct VV law.
 
 ```julia
-receipt = TOML.parsefile("examples/opf/pglib/hard-cases/ieee118-reductions.toml")
+receipt = TOML.parsefile(HardCaseSearch.evidence_file("ieee118-reductions.toml"))
 trial = only(filter(t -> t["encoding"] == "shared" && t["controlled"] == 1 &&
     t["plateau"] == "crossing" && t["start_label"] == "flat", receipt["trials"]))
 data = reduction_case(; encoding=Symbol(trial["encoding"]),
@@ -132,7 +169,7 @@ The elevated/severe reactive-support inputs fail both tested profiles from both
 starts despite verified witnesses; renewable-surplus inputs pass throughout.
 
 ```julia
-receipt = TOML.parsefile("examples/opf/pglib/hard-cases/ieee118-applications.toml")
+receipt = TOML.parsefile(HardCaseSearch.evidence_file("ieee118-applications.toml"))
 trial = only(filter(t -> t["family"] == "reactive_support" &&
     t["level"] == "severe" && t["profile"]["name"] == "ratio_one", receipt["trials"]))
 data = HardCaseSearch.TransmissionOPF.application_case(:reactive_support; level=:severe)
@@ -174,7 +211,7 @@ Historical failure statuses are preserved without requiring future solvers to
 repeat them.
 
 ```julia
-receipt = TOML.parsefile("examples/opf/pglib/hard-cases/ieee118-expansions.toml")
+receipt = TOML.parsefile(HardCaseSearch.evidence_file("ieee118-expansions.toml"))
 trial = only(filter(t -> t["case_key"] == "policy-injection_service-both" &&
     t["start_label"] == "flat", receipt["trials"]))
 data = HardCaseSearch.TransmissionOPF.application_policy_case(:injection_service)
