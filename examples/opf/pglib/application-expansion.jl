@@ -103,6 +103,7 @@ function application_policy_case(
     network::Symbol = :ieee118,
     laws = :both,
     hinge_encoding = :separate,
+    parameters = (;),
 )
     laws in (:dispatchable, :vv, :vw, :both) || throw(ArgumentError("invalid policies"))
     card=application_policy_card(policy; network)
@@ -110,7 +111,7 @@ function application_policy_case(
         card.family;
         network,
         level = card.level,
-        parameters = card.parameters,
+        parameters = merge(card.parameters, parameters),
     )
     shifts=(-0.006, 0.006, 0.0, -0.003, 0.003, -0.004)
     controllers=map(enumerate(base.controllers)) do (i, c)
@@ -220,8 +221,15 @@ function application_fleet_case(
     placement = :same_sites,
     laws = :both,
     hinge_encoding = :separate,
+    network = :ieee118,
+    parameters = (;),
+    policy = :standard,
 )
-    base=application_case(family; level, laws)
+    base=policy==:standard ? application_case(family; network, level, laws, parameters) :
+         application_policy_case(policy; network, laws, parameters)
+    Symbol(base.provenance.application_family)==family &&
+    Symbol(base.provenance.operating_level)==level ||
+        throw(ArgumentError("fleet family/level must match policy anchor"))
     n=length(base.controllers)
     count>=n && count % n==0 ||
         throw(ArgumentError("count must be a positive multiple of template population"))
@@ -241,7 +249,8 @@ function application_fleet_case(
         controllers,
         hinge_encoding,
         name = Symbol(
-            "ieee118_fleet_",
+            network,
+            "_fleet_",
             family,
             "_",
             level,

@@ -472,4 +472,5 @@ include("transition-search.jl")
 include("reduction-search.jl")
 include("application-search.jl")
 include("expansion-search.jl")
+include("operating-search.jl")
 end

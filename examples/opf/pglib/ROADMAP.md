@@ -1,5 +1,21 @@
 # PGLib transmission OPF roadmap
 
+## Focused operating-condition matrix (2026-10-26)
+
+Retain the existing single-state balanced AC OPF, fixed VV equality/VW cap and
+independent hardware/network limits. No SCOPF, temporal coupling, new control
+laws, free equipment or curve-design variables are introduced.
+
+- [ ] Add IEEE 118/300 one-sided Q-upper reserve and fixed-policy export sequences.
+- [ ] Add selected penetration, fixed-total placement and population controls.
+- [ ] Independently validate references and measure combined VV/VW/network activity.
+- [ ] Benchmark identical flat/reference starts under current/ratio_one settings;
+      preserve unresolved references, raw failures and all inputs/options.
+- [ ] Curate a small coverage/diversity collection with measured easy, mixed and
+      difficult outcomes; retain the full candidate census and original archives.
+- [ ] Add physics/invariant/derivative/evidence tests, portable documentation and
+      CI coverage at the existing fast versus exhaustive tiers.
+
 ## PR readiness and preservation (2026-10-25)
 
 - [x] Correct VV plateau labels using terminal Q polarity; zero-Q, one-sided,
