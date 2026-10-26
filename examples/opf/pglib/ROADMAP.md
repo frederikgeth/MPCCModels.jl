@@ -6,15 +6,42 @@ Retain the existing single-state balanced AC OPF, fixed VV equality/VW cap and
 independent hardware/network limits. No SCOPF, temporal coupling, new control
 laws, free equipment or curve-design variables are introduced.
 
-- [ ] Add IEEE 118/300 one-sided Q-upper reserve and fixed-policy export sequences.
-- [ ] Add selected penetration, fixed-total placement and population controls.
-- [ ] Independently validate references and measure combined VV/VW/network activity.
-- [ ] Benchmark identical flat/reference starts under current/ratio_one settings;
+- [x] Add IEEE 118/300 one-sided Q-upper reserve and fixed-policy export sequences.
+- [x] Add selected penetration, fixed-total placement and population controls.
+- [x] Independently validate references and measure combined VV/VW/network activity.
+- [x] Benchmark identical flat/reference starts under current/ratio_one settings;
       preserve unresolved references, raw failures and all inputs/options.
-- [ ] Curate a small coverage/diversity collection with measured easy, mixed and
+- [x] Curate a small coverage/diversity collection with measured easy, mixed and
       difficult outcomes; retain the full candidate census and original archives.
-- [ ] Add physics/invariant/derivative/evidence tests, portable documentation and
+- [x] Add physics/invariant/derivative/evidence tests, portable documentation and
       CI coverage at the existing fast versus exhaustive tiers.
+
+Recorded outcome: **46 inputs, 45 strict references, 184 requests**. The raw
+matrix has 84 accepted outcomes, 97 native failures, one solved-status physical
+accuracy gap and two unavailable witness starts. The full case spectrum is
+14 easy / 16 mixed / 15 difficult under budget / one unresolved reference.
+The unresolved input is IEEE 300 `reserve_q80`; it is not certified infeasible.
+
+The deterministic twelve-case collection has six per network and spans five
+easy, two mixed and five difficult cases. It covers all 43 physical features
+observed across the full matrix, including early/middle/late strict VW ramps,
+VV saturation/native-limit combinations, export-cutset activity and S-circle
+saturation. Strict VW plus S activity at different plants and active angle bounds
+remain gaps; no operating laws or voltages were changed to manufacture them.
+
+Validation: 2,050 core assertions; 6,855 operating-model assertions on Julia 1.10
+and 1.12; 172 fast checks on both; 1,083 operating-evidence/selection/resume checks;
+38 archive-integrity checks; 2,648 legacy expansion and 2,254 policy checks.
+The compact receipt, full census and sweep regenerate byte for byte. All 1,647
+original experiment files remain unchanged in the verified raw archive. The
+updated 26.7 MB local preservation bundle contains fifteen raw archives and
+eight lossless receipts. Documenter builds offline and local links pass across
+19 pages. Remote GitHub CI remains pending; no PR or release is opened here.
+
+See the [operating-condition guide](OPERATING_CONDITIONS.md),
+[complete census](hard-cases/operating-conditions-census.tsv) and
+[raw sweep](hard-cases/operating-conditions-sweep.tsv) for physical parameters,
+measured activity, native statuses and qualification boundaries.
 
 ## PR readiness and preservation (2026-10-25)
 

@@ -271,3 +271,7 @@ separately from availability coincidences. Use
 
 See [test tiers and evidence](TESTING.md) for fast PR checks, manual/weekly solver
 integration, and the preserved full benchmark records.
+
+The [IEEE 118/300 operating-condition matrix](OPERATING_CONDITIONS.md) varies
+reserve, export ratings, penetration and selected placements with fixed existing
+VV/VW policies and the same single-state model builder.

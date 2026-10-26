@@ -28,6 +28,7 @@ makedocs(
       "IEEE 300" => "generated/opf/pglib/IEEE300.md",
       "IEEE 300 policy matrix" => "generated/opf/pglib/POLICY_MATRIX.md",
       "Search and replay" => "generated/opf/pglib/HARD_SEARCH.md",
+      "Operating conditions" => "generated/opf/pglib/OPERATING_CONDITIONS.md",
       "Test tiers" => "generated/opf/pglib/TESTING.md",
       "Benchmark evidence" => "generated/opf/pglib/hard-cases/README.md",
       "Source attribution" => "generated/opf/pglib/data/README.md",
