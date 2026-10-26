@@ -106,6 +106,8 @@ function application_policy_case(
     parameters = (;),
 )
     laws in (:dispatchable, :vv, :vw, :both) || throw(ArgumentError("invalid policies"))
+    parameters isa NamedTuple ||
+        throw(ArgumentError("policy parameters must be a named tuple"))
     card=application_policy_card(policy; network)
     base=application_case(
         card.family;
@@ -115,8 +117,9 @@ function application_policy_case(
     )
     shifts=(-0.006, 0.006, 0.0, -0.003, 0.003, -0.004)
     controllers=map(enumerate(base.controllers)) do (i, c)
-        vv=opf_curve(collect(card.vv_knots) .+ shifts[i], c.smax .* collect(card.vv_values))
-        vw=opf_curve(collect(card.vw_knots) .+ shifts[i], c.smax .* collect(card.vw_values))
+        offset=shifts[i]+base.provenance.parameters.profile_shift
+        vv=opf_curve(collect(card.vv_knots) .+ offset, c.smax .* collect(card.vv_values))
+        vw=opf_curve(collect(card.vw_knots) .+ offset, c.smax .* collect(card.vw_values))
         b=base.buses[c.bus]
         all(k->b.vmin<=k<=b.vmax, [vv.knots; vw.knots]) ||
             throw(ArgumentError("policy knots leave original voltage band"))
@@ -360,8 +363,11 @@ function application_expansion_case(
         network==:ieee300 || throw(ArgumentError("reserve matrix uses IEEE 300"))
         return application_reserve_case(spec.reserve; laws, hinge_encoding)
     elseif spec.kind==:fleet
-        network==:ieee118 ||
-            throw(ArgumentError("fleet geography is validated on IEEE 118 only"))
+        network==:ieee118 || throw(
+            ArgumentError(
+                "legacy expansion fleet specs use IEEE 118; use the operating matrix for IEEE 300",
+            ),
+        )
         Set(keys(spec))==Set((:kind, :family, :level, :count, :placement)) ||
             throw(ArgumentError("invalid fleet spec"))
         return application_fleet_case(

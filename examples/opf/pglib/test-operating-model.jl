@@ -5,6 +5,20 @@ const T=TransmissionOPF
 
 @testset "Operating matrix dimensions, matched laws and independent axes" begin
     for network in (:ieee118, :ieee300)
+        original_policy=T.application_policy_case(:gentle_watt_cap; network)
+        shifted_policy=T.application_policy_case(
+            :gentle_watt_cap;
+            network,
+            parameters = (profile_shift = 0.001,),
+        )
+        @test shifted_policy.pm==original_policy.pm
+        for (shifted, original) in
+            zip(shifted_policy.controllers, original_policy.controllers)
+            @test shifted.vv.knots≈original.vv.knots .+ 0.001
+            @test shifted.vw.knots≈original.vw.knots .+ 0.001
+            @test shifted.vv.values==original.vv.values &&
+                  shifted.vw.values==original.vw.values
+        end
         specs=T.operating_condition_specs(; network)
         @test length(specs)==23 && allunique(s.id for s in specs)
         byid=Dict(s.id=>s for s in specs)
@@ -59,6 +73,21 @@ const T=TransmissionOPF
             @test length(data.controllers)==byid[id].count
             @test !(data.reference_bus in [c.bus for c in data.controllers])
         end
+        replicas=T.operating_condition_case(byid[:placement_12_same_sites])
+        source_model=T.TransmissionOPFModel(anchor)
+        x=copy(get_x0(source_model))
+        split=T.application_fleet_start(replicas, anchor, x)
+        @test T._physical_balance(anchor, x, T.transmission_layout(anchor))[1]≈T._physical_balance(
+            replicas,
+            split,
+            T.transmission_layout(replicas),
+        )[1] atol=1e-10
+        @test obj(source_model, x)≈obj(T.TransmissionOPFModel(replicas), split) atol=1e-8
+        @test T.transmission_residuals(source_model, anchor, x).physical_balance≈T.transmission_residuals(
+            T.TransmissionOPFModel(replicas),
+            replicas,
+            split,
+        ).physical_balance atol=1e-10
         for spec in specs
             data=T.operating_condition_case(spec)
             @test isempty(data.targets) && isempty(data.network_targets)
