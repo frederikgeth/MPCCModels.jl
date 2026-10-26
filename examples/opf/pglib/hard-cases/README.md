@@ -2,7 +2,7 @@
 
 ## Access and preservation
 
-The seven historical TOML receipts described below are stored losslessly as
+The eight historical TOML receipts described below are stored losslessly as
 `evidence/*.toml.gz`. `evidence/index.toml` records compressed and original byte
 counts and SHA-256 hashes. Resolve a receipt with
 `HardCaseSearch.evidence_file("ieee300-policy-matrix.toml")` after including
@@ -11,14 +11,15 @@ both hashes, and writes a content-addressed temporary cache. No download or
 solver run is needed. Original receipt bytes, historical provenance and failure
 records have not been edited. The TSV census/trace tables remain directly readable.
 
-`fast-witnesses.toml` is a derived PR fixture containing 14 physical points:
+`fast-witnesses.toml` is a derived PR fixture containing 20 physical points:
 three nominal IEEE 118 applications, two independent canonical IEEE 300 points,
-and all nine IEEE 300 policy/reserve references. It records authoritative receipt
+all nine IEEE 300 policy/reserve references, and six selected operating-condition
+references spanning both networks and all three observed difficulty strata. It records authoritative receipt
 hashes, input hashes and Float64 bit hashes. It does not replace the full evidence.
 Regenerate it with `curate-fast-fixtures.jl OUTPUT.toml`; exhaustive CI checks
 byte-for-byte derivation from the full receipts.
 
-`evidence/raw-archives.toml` indexes **all 14 complete local raw archives**, with
+`evidence/raw-archives.toml` indexes **all 15 complete local raw archives**, with
 sizes and SHA-256 hashes, including exploratory and failed attempts. They remain
 under ignored `../search-results/`. Package them together with the lossless
 receipts for future distribution, without uploading or overwriting anything:
@@ -31,7 +32,7 @@ The command verifies every archive and receipt before packaging and writes a
 SHA-256 sidecar. This preserves a complete transferable evidence bundle. Public
 hosting remains a release task; raw-log archives are not yet downloadable from
 this repository. `evidence/release-bundle.toml` identifies the verified local
-19.2 MB preservation bundle and its checksum. See [test tiers](../TESTING.md) for mandatory PR checks and the
+26.7 MB preservation bundle and its checksum. See [test tiers](../TESTING.md) for mandatory PR checks and the
 manual/weekly exhaustive gate. Historical source fingerprints belong to the
 captured version; reproducing an old source-matched resume requires that version.
 
@@ -314,3 +315,29 @@ logs. The new studies retain the unresolved status of the two original signed-Q
 stress inputs; the one-sided reserve sequence is a separate feasible family.
 Local sector references establish numerical feasibility, not global optimality
 or full-MPCC stationarity. Publishing the complete archives remains follow-up work.
+
+## IEEE 118/300 operating-condition records
+
+`operating-conditions.toml` retains twelve cases selected from the 46-input matrix:
+six per network, five easy, two mixed and five difficult under the recorded budget.
+It includes every selected feasible reference, all 48 raw starts/returned points,
+twelve matched dispatchable records and deduplicated effective option dictionaries
+identified by SHA-256. The complete 46-case numerical census and all 184 requested
+outcomes remain in the readable census/sweep TSVs beside this guide. The single
+unresolved reference and its unavailable starts are retained, not called infeasible.
+
+The twelve selected points cover all 43 features observed in the full study.
+Early/middle/late strict VW ramps, mixed controller regions, VV saturation plus
+native limits, export-boundary activity and S-circle saturation are represented.
+Strict VW plus S activity at different plants remains a recorded coverage gap.
+See the [operating-condition guide](../OPERATING_CONDITIONS.md) for physical axes,
+selection rules, the result table and qualification limits.
+
+`operating-conditions-2026-10-26.tar.gz` preserves 1,647 original experiment files
+unchanged, plus the read-only curation/preservation scripts and a per-file SHA-256
+manifest. Its 6,936,206 bytes have SHA-256
+`b893495635e84c87a958e05c018ebbc349a7cd286e080a30804aeff21216f687`.
+The updated complete `pr-evidence-2026-10-26.tar` preservation bundle contains
+all fifteen raw archives and eight lossless receipts. Both bundles remain local;
+checksums and the non-overwriting packaging utility are committed. The older
+25 October cleanup bundle remains preserved separately.

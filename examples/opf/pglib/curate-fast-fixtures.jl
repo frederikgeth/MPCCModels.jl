@@ -62,6 +62,26 @@ function curate_fast_fixtures(output)
             coverage = row["witness_coverage"],
         )
     end
+    name="operating-conditions.toml"
+    operating=TOML.parsefile(evidence_file(name))["cases"]
+    for network in ("ieee118", "ieee300"),
+        difficulty in ("easy", "mixed", "difficult_under_budget")
+
+        matching=filter(
+            r->r["spec"]["network"]==network && r["difficulty"]==difficulty,
+            operating,
+        )
+        isempty(matching) && continue
+        row=first(sort(matching; by = r->r["case_key"]))
+        reference=row["reference"]
+        point=Dict(
+            "x"=>reference["x"],
+            "point_bits_sha256"=>reference["point_bits_sha256"],
+            "objective"=>reference["metrics"]["objective"],
+        )
+        spec=Dict("kind"=>"operating", "network"=>network, "condition"=>row["spec"])
+        add_point(name, row, point, spec; coverage = reference["coverage"])
+    end
     open(output, "w") do io
         return TOML.print(
             io,

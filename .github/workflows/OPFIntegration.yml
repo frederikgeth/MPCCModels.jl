@@ -57,3 +57,7 @@ jobs:
         run: julia --project=examples/opf/pglib examples/opf/pglib/test-ieee300.jl
       - name: Verify IEEE 300 policy regimes, one-sided reserve and numerical evidence
         run: julia --project=examples/opf/pglib examples/opf/pglib/test-policy-matrix.jl
+      - name: Verify independent operating axes, physics and derivatives
+        run: julia --project=examples/opf/pglib examples/opf/pglib/test-operating-model.jl
+      - name: Verify operating census, compact selection, original points and recorder
+        run: julia --project=examples/opf/pglib examples/opf/pglib/test-operating-evidence.jl

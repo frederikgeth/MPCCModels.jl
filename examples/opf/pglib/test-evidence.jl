@@ -3,7 +3,7 @@ include("curate-fast-fixtures.jl")
 
 @testset "Lossless receipt archive integrity and corrupt-cache rejection" begin
     index=TOML.parsefile(joinpath(BenchmarkEvidence.DIRECTORY, "index.toml"))
-    @test length(index["receipts"])==7
+    @test length(index["receipts"])==8
     mktempdir() do cache
         for (name, entry) in index["receipts"]
             file=evidence_file(name; cache)

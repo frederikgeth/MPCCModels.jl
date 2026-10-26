@@ -56,3 +56,7 @@ sha256 = "4646aee659c03d66e0684e9fbd58d6c8e358bc0592bbb713a543f81b101472a6"
 [archives."ieee300-policy-references-2026-10-25.tar.gz"]
 bytes = 1902029
 sha256 = "1f81e43b59614ab20dac264b54494382cd1288d0d86646f4d936d0dcd3b1780b"
+
+[archives."operating-conditions-2026-10-26.tar.gz"]
+bytes = 6936206
+sha256 = "b893495635e84c87a958e05c018ebbc349a7cd286e080a30804aeff21216f687"

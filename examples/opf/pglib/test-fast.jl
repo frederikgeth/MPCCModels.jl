@@ -7,7 +7,8 @@ const T=H.TransmissionOPF
 @testset "Compact physical witnesses and authoritative receipt identities" begin
     fixture=TOML.parsefile(joinpath(@__DIR__, "hard-cases", "fast-witnesses.toml"))
     index=TOML.parsefile(joinpath(@__DIR__, "hard-cases", "evidence", "index.toml"))
-    @test length(fixture["points"])==14
+    @test count(r->r["spec"]["kind"]!="operating", fixture["points"])==14
+    @test 4<=count(r->r["spec"]["kind"]=="operating", fixture["points"])<=6
     for (name, hash) in fixture["source_receipts"]
         @test hash==index["receipts"][name]["sha256"]
     end
@@ -22,6 +23,8 @@ const T=H.TransmissionOPF
                 network,
                 level = Symbol(spec["level"]),
             )
+        elseif spec["kind"]=="operating"
+            T.operating_condition_case(spec["condition"])
         else
             T.application_expansion_case((; (Symbol(k)=>Symbol(v) for (k, v) in spec)...))
         end

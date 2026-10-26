@@ -49,3 +49,10 @@ bytes = 3304357
 sha256 = "77284ee55edfabff3b040a35ee25a5bf3ac60b0a8c770e13a9ba96ea34b11901"
 compressed_bytes = 1062999
 compressed_sha256 = "0127774bc3f59fbbea316a82e33639c458c4dd7f6c3f79ba780b94bc6439a7c0"
+
+[receipts."operating-conditions.toml"]
+file = "operating-conditions.toml.gz"
+bytes = 1801826
+sha256 = "728ecf458c39677a4d88a08a93d48db7170851e0c66f4940290bb8ac935a50ca"
+compressed_bytes = 586095
+compressed_sha256 = "55462095d9fb2a0a947c8f2f2598acc99e1b8ebd6ea66534ff1b5cad278c37bb"
